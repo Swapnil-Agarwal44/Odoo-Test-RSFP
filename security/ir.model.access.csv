@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_quality_grading_user,Quality Grading User,model_custom_quality_grading,base.group_user,1,1,1,1
+access_quality_test_line_user,Quality Test Line User,model_custom_quality_test_line,base.group_user,1,1,1,1
+access_quality_image_user,Quality Image User,model_custom_quality_image,base.group_user,1,1,1,1
+access_quality_report_wizard,Quality Report Wizard User,model_custom_quality_report_wizard,base.group_user,1,1,1,1

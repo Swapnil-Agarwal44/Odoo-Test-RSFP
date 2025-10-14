@@ -1,0 +1,21 @@
+<!-- This XML file defines the automatic sequence numbering for Quality Grading Reports:
+     - Creates a sequence record that generates unique identifiers (e.g., QR-0001, QR-0002)
+     - Used by the create() method in custom.quality.grading model
+     - noupdate="1" ensures sequence numbers aren't reset on module updates
+     Key components:
+     - prefix: "QR-" prefix for all report numbers
+     - padding: 4 digits after prefix (0001, 0002, etc.)
+     - company_id: False allows sequence to be used across all companies
+-->
+
+<odoo noupdate="1">
+    <data noupdate="1">
+    <record id="seq_custom_quality_grading" model="ir.sequence">
+        <field name="name">Quality Grading Report Sequence</field>
+        <field name="code">custom.quality.grading</field>
+        <field name="prefix">QR-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+    </data>
+</odoo>
