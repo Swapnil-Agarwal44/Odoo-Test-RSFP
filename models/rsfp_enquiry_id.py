@@ -1,5 +1,8 @@
 from odoo import fields, models, api # type: ignore
 
+# This model represents external enquiry IDs used in RSFP system.
+# It stores unique identifiers that can be linked to purchase orders for external reference and tracking purposes.
+
 class RSFPEnquiryID(models.Model):
     _name = 'rsfp.enquiry.id'
     _description = 'RSFP External Enquiry ID'

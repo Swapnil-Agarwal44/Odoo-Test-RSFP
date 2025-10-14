@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- This XML file extends the standard Purchase Order form view to add RSFP-specific fields:
+     - Inherits the standard purchase.order_form view
+     - Adds a new field 'enquiry_ids' after the 'partner_ref' field
+     - The field uses many2many_tags widget for better UX
+     - Allows creation of new enquiry IDs directly from the field
+     
+     Key components:
+     - view_order_form_rsfp_enquiry: Unique identifier for this view extension
+     - inherit_id: References the base purchase order form to extend
+     - xpath: Defines where to insert the new field in the existing view
+     - options: Configures the field's creation capabilities
+-->
 <odoo>
     <record id="view_order_form_rsfp_enquiry" model="ir.ui.view">
         <field name="name">purchase.order.form.rsfp.enquiry</field>
         <field name="model">purchase.order</field>
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
-            <!-- Try different positions if this one doesn't work -->
+
             <xpath expr="//field[@name='partner_ref']" position="after">
                 <field name="enquiry_ids" widget="many2many_tags" 
                        options="{'no_create': False, 'no_quick_create': False}" 
