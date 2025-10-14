@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_rsfp_enquiry" model="ir.ui.view">
+        <field name="name">purchase.order.form.rsfp.enquiry</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Try different positions if this one doesn't work -->
+            <xpath expr="//field[@name='partner_ref']" position="after">
+                <field name="enquiry_ids" widget="many2many_tags" 
+                       options="{'no_create': False, 'no_quick_create': False}" 
+                       placeholder="Add Enquiry IDs..."/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

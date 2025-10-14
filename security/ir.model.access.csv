@@ -3,3 +3,4 @@ access_quality_grading_user,Quality Grading User,model_custom_quality_grading,ba
 access_quality_test_line_user,Quality Test Line User,model_custom_quality_test_line,base.group_user,1,1,1,1
 access_quality_image_user,Quality Image User,model_custom_quality_image,base.group_user,1,1,1,1
 access_quality_report_wizard,Quality Report Wizard User,model_custom_quality_report_wizard,base.group_user,1,1,1,1
+access_rsfp_enquiry_id,RSFP Enquiry ID User,model_rsfp_enquiry_id,base.group_user,1,1,1,1
