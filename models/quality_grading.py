@@ -51,6 +51,17 @@ class CustomQualityTestLine(models.Model):
         ('grade_c', 'Grade C'),
     ], string='Product Grade', required=True)
 
+    # **START OF NEW/MODIFIED CODE**
+    # NEW FIELD: The specific destination product for this grade
+    graded_product_id = fields.Many2one(
+        'product.product',
+        string='Destination Graded Product',
+        domain=[('tracking', '=', 'lot')], # Only show lot-tracked products
+        required=True,
+        help="The specific product record (A Grade, B Grade, etc.) this quantity will be transformed into."
+    )
+    # **END OF NEW/MODIFIED CODE**
+
     # --- Quality Characteristics (Checkboxes) ---
     uniform_color = fields.Boolean(string='Uniform Color', default=True)
     visible_mold = fields.Boolean(string='Visible Mold', default=False)
@@ -163,9 +174,13 @@ class CustomQualityGrading(models.Model):
     test_location_id = fields.Many2one('stock.location', string='Test Location',
                                        help="The internal location where the quality testing took place.")
     
-    # NEW FIELD: Lot Number Reference
-    # lot_id = fields.Many2one('stock.production.lot', string='Lot/Serial Number', 
-    #                          help="The specific Lot/Serial Number of the product being tested.")
+    # NEW FIELD: Parent Lot/Batch ID (Replaces the commented-out lot_id field)
+    parent_lot_id = fields.Many2one(
+        'stock.production.lot', 
+        string='Parent Lot/Batch', 
+        required=True, # Lot is required to confirm the report and perform segregation
+        help="The main Lot/Batch number assigned during the initial Purchase Receipt."
+    )
 
     # Grading Summary Fields
     qty_received = fields.Float(string='Qty Received (Total)', required=True, digits='Product Unit of Measure')
