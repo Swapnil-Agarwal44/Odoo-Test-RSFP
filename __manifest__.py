@@ -20,7 +20,8 @@
         # The commented out report template reference is CORRECTLY OMITTED from 'data'.
 
         'reports/custom_quality_report_templates.xml',
-        'views/purchase_order_views.xml'
+        'views/purchase_order_views.xml', 
+
     ],
     
     'installable': True,
