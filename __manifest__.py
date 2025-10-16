@@ -22,6 +22,8 @@
         'reports/custom_quality_report_templates.xml',
         'views/purchase_order_views.xml', 
 
+        'views/product_template_views.xml', 
+
     ],
     
     'installable': True,
