@@ -201,6 +201,14 @@ class CustomQualityGrading(models.Model):
     # NEW FIELD: General Notes
     notes = fields.Text(string='General Notes/Remarks', help="Any high-level notes or remarks related to the overall quality inspection.") 
 
+    # NEW FIELD: Created to store if the grading move has been generated for the report or not
+    inventory_processed = fields.Boolean(
+    string="Inventory Processed",
+    default=False,
+    copy=False,
+    help="Indicates if the stock moves for grading have been generated."
+)
+
     # Computed fields and Constraints
     @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
     def _compute_total_graded(self):
@@ -222,3 +230,27 @@ class CustomQualityGrading(models.Model):
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.grading') or _('New')
         return super().create(vals_list)
+    
+    # @api.multi
+    # def write(self, vals):
+    #     # Call super first to save all data entered by the user
+    #     res = super(CustomQualityGrading, self).write(vals)
+
+    #     # Check conditions only if the report hasn't been processed yet
+    #     for report in self:
+    #         if not report.inventory_processed:
+    #             # Check 1: All required data is present
+    #             if report.parent_lot_id and report.qty_received > 0 and report.qty_total_graded == report.qty_received:
+    #                 # Check 2: The write operation includes a change to the graded quantities 
+    #                 # (Optional, but makes it safer than just a generic save)
+    #                 if any(f in vals for f in ['qty_grade_a', 'qty_grade_b', 'qty_grade_c']):
+    #                     # Now, fire the inventory generation logic (Stage 3.2)
+    #                     report._generate_graded_inventory_moves()
+    #                     report.write({'inventory_processed': True})
+        
+    #     return res
+
+    # # The method for the actual inventory creation will be defined later
+    # def _generate_graded_inventory_moves(self):
+    #     # Logic for generating lots and stock moves will go here.
+    #     pass

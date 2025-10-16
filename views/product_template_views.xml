@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- inheriting the view of the product.template to make the lot_abbreviation field appear in the general information tab of the product template form  -->
 <odoo>
     <record id="product_template_form_view_inherit_lot_abbr" model="ir.ui.view">
         <field name="name">product.template.form.inherit.lot.abbreviation</field>
