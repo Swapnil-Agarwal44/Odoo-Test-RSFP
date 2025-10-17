@@ -1,6 +1,6 @@
 <odoo noupdate="1">
     <data>
-        <!-- Main Sequence Definition -->
+        <!-- Main Sequence Definition for the lots created for products -->
         <record id="seq_parent_lot_daily" model="ir.sequence">
             <field name="name">Daily Parent Lot Sequence</field>
             <field name="code">parent.lot.daily.sequence</field>

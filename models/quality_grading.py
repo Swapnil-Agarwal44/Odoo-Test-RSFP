@@ -16,21 +16,6 @@ class CustomQualityImage(models.Model):
     image = fields.Binary(string='Image', required=True)
     location = fields.Char(string='Capture Location/Context')
 
-
-    #computed fields and 
-    # @api.depends('image_ids')
-    # def _compute_image_rows(self):
-    #     for record in self:
-    #         # Group images into lists of 3
-    #         record.image_rows = [
-    #             record.image_ids[i:i + 3] 
-    #             for i in range(0, len(record.image_ids), 3)
-    #         ]
-
-    # image_rows = fields.Many2many(
-    #     'ir.attachment', string="Image Rows", compute='_compute_image_rows', store=False
-    # )
-
 # --- 2. Quality Test Line Model (Child) ---
 class CustomQualityTestLine(models.Model):
     _name = 'custom.quality.test.line'
@@ -235,26 +220,4 @@ class CustomQualityGrading(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.grading') or _('New')
         return super().create(vals_list)
     
-    # @api.multi
-    # def write(self, vals):
-    #     # Call super first to save all data entered by the user
-    #     res = super(CustomQualityGrading, self).write(vals)
-
-    #     # Check conditions only if the report hasn't been processed yet
-    #     for report in self:
-    #         if not report.inventory_processed:
-    #             # Check 1: All required data is present
-    #             if report.parent_lot_id and report.qty_received > 0 and report.qty_total_graded == report.qty_received:
-    #                 # Check 2: The write operation includes a change to the graded quantities 
-    #                 # (Optional, but makes it safer than just a generic save)
-    #                 if any(f in vals for f in ['qty_grade_a', 'qty_grade_b', 'qty_grade_c']):
-    #                     # Now, fire the inventory generation logic (Stage 3.2)
-    #                     report._generate_graded_inventory_moves()
-    #                     report.write({'inventory_processed': True})
-        
-    #     return res
-
-    # # The method for the actual inventory creation will be defined later
-    # def _generate_graded_inventory_moves(self):
-    #     # Logic for generating lots and stock moves will go here.
-    #     pass
+    

@@ -1,5 +1,6 @@
-from odoo import models, api, fields
+from odoo import models, api, fields # type: ignore
 
+#this sequence is used to generate the proper data sequence for the customized lot sequence generation
 class IrSequence(models.Model):
     _inherit = 'ir.sequence'
 

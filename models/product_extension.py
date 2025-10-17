@@ -1,5 +1,7 @@
 from odoo import fields, models # type: ignore
 
+# This file includes a new field called lot_abbreviation in the products.template field, to allow for a admin to assign a unique abreviation to the products in the inventory. 
+# This is being used for the custom lot sequence creation of the lot of the purchase order.  
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
