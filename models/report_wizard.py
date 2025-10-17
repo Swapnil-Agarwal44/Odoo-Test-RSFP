@@ -1,4 +1,4 @@
-from odoo import models, fields, api, _ # type: ignore
+from odoo import models, fields, api # type: ignore
 
 # TransientModel is for creating temporary records used for forms/wizards
 class CustomQualityReportWizard(models.TransientModel):

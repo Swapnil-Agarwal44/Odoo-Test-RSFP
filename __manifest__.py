@@ -7,6 +7,8 @@
         'base',
         'purchase',
         'mail',
+        'stock',
+        'product',
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -22,7 +24,11 @@
         'reports/custom_quality_report_templates.xml',
         'views/purchase_order_views.xml', 
 
-        'views/product_template_views.xml', 
+        'views/product_template_views.xml',
+
+        'data/lot_sequence_data.xml', 
+
+
 
     ],
     

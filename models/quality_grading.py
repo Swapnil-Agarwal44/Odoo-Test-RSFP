@@ -176,9 +176,13 @@ class CustomQualityGrading(models.Model):
     
     # NEW FIELD: Parent Lot/Batch ID (Replaces the commented-out lot_id field)
     parent_lot_id = fields.Many2one(
-        'stock.production.lot', 
+        'stock.lot', 
         string='Parent Lot/Batch', 
-        required=True, # Lot is required to confirm the report and perform segregation
+        #required=True, # Lot is required to confirm the report and perform segregation
+        # Pass product_id as default_product_id to the Lot model
+        # context={'default_product_id': fields.Many2one.to_ids},
+        context={'default_product_id': 'product_id'},
+        # The default lot name will be generated on the Lot model itself
         help="The main Lot/Batch number assigned during the initial Purchase Receipt."
     )
 
