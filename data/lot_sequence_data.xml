@@ -4,22 +4,20 @@
         <record id="seq_parent_lot_daily" model="ir.sequence">
             <field name="name">Daily Parent Lot Sequence</field>
             <field name="code">parent.lot.daily.sequence</field>
-            <field name="prefix"></field>  <!-- No prefix, we handle it in Python -->
+            <field name="prefix"></field>
             <field name="padding">4</field>
             <field name="number_increment">1</field>
-            <field name="use_date_range">True</field>
-            <field name="number_next">1</field>
-        </record>
-
-        <!-- Date Range for Daily Reset -->
-        <record id="seq_parent_lot_daily_range" model="ir.sequence.date_range">
-            <field name="sequence_id" ref="seq_parent_lot_daily"/>
-            <field name="date_from" eval="(DateTime.now()).strftime('%Y-%m-%d')"/>
-            <field name="date_to" eval="(DateTime.now()).strftime('%Y-%m-%d')"/>
+            <field name="use_date_range">False</field>  <!-- Changed to False -->
             <field name="number_next">1</field>
         </record>
     </data>
 </odoo>
+
+
+
+
+
+
 
 
 

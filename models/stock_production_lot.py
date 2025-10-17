@@ -1,49 +1,207 @@
 from odoo import fields, models, api # type: ignore
 from odoo.exceptions import UserError # type: ignore
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class StockLot(models.Model):
     _inherit = 'stock.lot'
     _description = 'Stock Lot Extension'
 
-    # Override the name field to add our custom default
-    name = fields.Char(
-        'Lot/Serial Number',
-        default=lambda self: self._get_default_lot_name(),
-        required=True,
-        help="Unique Lot/Serial Number"
-    )
+    @api.model
+    def default_get(self, fields_list):
+        """Override to provide custom default lot name"""
+        _logger.info("=== DEFAULT_GET CALLED ===")
+        _logger.info(f"Context: {self._context}")
+        
+        res = super(StockLot, self).default_get(fields_list)
+        _logger.info(f"Super result: {res}")
+        
+        # Only generate if 'name' is in the requested fields
+        if 'name' in fields_list:
+            product_id = self._context.get('default_product_id') or self._context.get('product_id')
+            _logger.info(f"Product ID from context: {product_id}")
+            
+            if product_id:
+                custom_name = self._generate_lot_name(product_id)
+                _logger.info(f"Generated custom name: {custom_name}")
+                if custom_name:
+                    res['name'] = custom_name
+            else:
+                _logger.info("No product_id in context - will be set via onchange")
+        
+        _logger.info(f"Final result: {res}")
+        return res
 
     @api.model
-    def _get_default_lot_name(self):
-        """Generate default lot name with format: ABBR-DDMMYY-XXXX"""
-        # Try to get product_id from context
-        product_id = self._context.get('default_product_id') or self._context.get('product_id')
+    def _generate_lot_name(self, product_id):
+        """Generate lot name with format: ABBR-DDMMYY-XXXX"""
+        _logger.info(f"=== GENERATE_LOT_NAME called with product_id: {product_id} ===")
+        
         if not product_id:
-            # Return empty string if no product in context
-            # User will need to fill it manually or it will be set when product is selected
-            return ''
+            _logger.info("No product_id provided")
+            return False
+            
         product = self.env['product.product'].browse(product_id)
         if not product.exists():
-            return ''
+            _logger.info("Product does not exist")
+            return False
+        
+        _logger.info(f"Product found: {product.name}")
         abbreviation = product.product_tmpl_id.lot_abbreviation or 'XX'
+        _logger.info(f"Abbreviation: {abbreviation}")
+        
         today = fields.Date.today()
         date_str = today.strftime('%d%m%y')
+        _logger.info(f"Date string: {date_str}")
+        
         # Get the next sequence number for today
         sequence_code = 'parent.lot.daily.sequence'
         seq_number = self.env['ir.sequence'].next_by_code(sequence_code)
+        _logger.info(f"Sequence number: {seq_number}")
+        
         if not seq_number:
+            _logger.error("Sequence not found!")
             return f"{abbreviation}-{date_str}-ERROR"
-
-        # Format: ABBR-DDMMYY-XXXX
-        lot_name = f"{abbreviation}{date_str}-{seq_number}"
+        
+        # Format: ABBR-DDMMYY-XXXX (e.g., ABC-161025-0001)
+        lot_name = f"{abbreviation}-{date_str}-{seq_number}"
+        _logger.info(f"Final lot name: {lot_name}")
         return lot_name
-
 
     @api.onchange('product_id')
     def _onchange_product_id_generate_lot(self):
         """Generate lot name when product is selected"""
-        if self.product_id and (not self.name or self.name == ''):
-            self.name = self._get_default_lot_name()
+        _logger.info(f"=== ONCHANGE TRIGGERED === Product: {self.product_id.name if self.product_id else 'None'}")
+        _logger.info(f"Current name: {self.name}")
+        
+        if self.product_id:
+            # Check if current name is the default Odoo sequence (starts with numbers)
+            # or is empty/placeholder
+            should_replace = (
+                not self.name or 
+                self.name.isdigit() or  # Pure numbers like "0000014"
+                self.name.startswith('LOT/') or  # Default LOT sequence
+                self.name == ''
+            )
+            
+            _logger.info(f"Should replace name: {should_replace}")
+            
+            if should_replace:
+                generated_name = self._generate_lot_name(self.product_id.id)
+                _logger.info(f"Generated name: {generated_name}")
+                if generated_name:
+                    self.name = generated_name
+                    _logger.info(f"Name updated to: {self.name}")
+
+
+
+# from odoo import fields, models, api # type: ignore
+# from odoo.exceptions import UserError # type: ignore
+
+# class StockLot(models.Model):
+#     _inherit = 'stock.lot'
+#     _description = 'Stock Lot Extension'
+
+#     @api.model
+#     def default_get(self, fields_list):
+#         """Override to provide custom default lot name"""
+#         res = super(StockLot, self).default_get(fields_list)
+        
+#         # Only generate if 'name' is in the requested fields
+#         if 'name' in fields_list:
+#             product_id = self._context.get('default_product_id') or self._context.get('product_id')
+            
+#             if product_id:
+#                 custom_name = self._generate_lot_name(product_id)
+#                 if custom_name:
+#                     res['name'] = custom_name
+        
+#         return res
+
+#     @api.model
+#     def _generate_lot_name(self, product_id):
+#         """Generate lot name with format: ABBR-DDMMYY-XXXX"""
+#         if not product_id:
+#             return False
+            
+#         product = self.env['product.product'].browse(product_id)
+#         if not product.exists():
+#             return False
+            
+#         abbreviation = product.product_tmpl_id.lot_abbreviation or 'XX'
+        
+#         today = fields.Date.today()
+#         date_str = today.strftime('%d%m%y')
+        
+#         # Get the next sequence number for today
+#         sequence_code = 'parent.lot.daily.sequence'
+#         seq_number = self.env['ir.sequence'].next_by_code(sequence_code)
+        
+#         if not seq_number:
+#             return f"{abbreviation}-{date_str}-ERROR"
+        
+#         # Format: ABBR-DDMMYY-XXXX (e.g., ABC-161025-0001)
+#         lot_name = f"{abbreviation}-{date_str}-{seq_number}"
+#         return lot_name
+
+#     @api.onchange('product_id')
+#     def _onchange_product_id_generate_lot(self):
+#         """Generate lot name when product is selected"""
+#         if self.product_id and not self.name:
+#             generated_name = self._generate_lot_name(self.product_id.id)
+#             if generated_name:
+#                 self.name = generated_name
+
+
+
+
+# from odoo import fields, models, api # type: ignore
+# from odoo.exceptions import UserError # type: ignore
+
+# class StockLot(models.Model):
+#     _inherit = 'stock.lot'
+#     _description = 'Stock Lot Extension'
+
+#     # Override the name field to add our custom default
+#     name = fields.Char(
+#         'Lot/Serial Number',
+#         default=lambda self: self._get_default_lot_name(),
+#         required=True,
+#         help="Unique Lot/Serial Number"
+#     )
+
+#     @api.model
+#     def _get_default_lot_name(self):
+#         """Generate default lot name with format: ABBR-DDMMYY-XXXX"""
+#         # Try to get product_id from context
+#         product_id = self._context.get('default_product_id') or self._context.get('product_id')
+#         if not product_id:
+#             # Return empty string if no product in context
+#             # User will need to fill it manually or it will be set when product is selected
+#             return ''
+#         product = self.env['product.product'].browse(product_id)
+#         if not product.exists():
+#             return ''
+#         abbreviation = product.product_tmpl_id.lot_abbreviation or 'XX'
+#         today = fields.Date.today()
+#         date_str = today.strftime('%d%m%y')
+#         # Get the next sequence number for today
+#         sequence_code = 'parent.lot.daily.sequence'
+#         seq_number = self.env['ir.sequence'].next_by_code(sequence_code)
+#         if not seq_number:
+#             return f"{abbreviation}-{date_str}-ERROR"
+
+#         # Format: ABBR-DDMMYY-XXXX
+#         lot_name = f"{abbreviation}{date_str}-{seq_number}"
+#         return lot_name
+
+
+#     @api.onchange('product_id')
+#     def _onchange_product_id_generate_lot(self):
+#         """Generate lot name when product is selected"""
+#         if self.product_id and (not self.name or self.name == ''):
+#             self.name = self._get_default_lot_name()
 
 
 
