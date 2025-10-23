@@ -147,6 +147,14 @@ class CustomQualityGrading(models.Model):
     # Header Details
     name = fields.Char(string='Report Reference', required=True, copy=False, readonly=True, 
                        default=lambda self: _('New'))
+    
+    # **NEW FIELD: State Management**
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('confirmed', 'Confirmed'),
+    ], string='Status', default='draft', readonly=True, tracking=True,
+       help="Draft: Report can be edited. Confirmed: Report is locked and inventory operations are triggered.")
+
     # Links to the built-in Purchase Order model
     purchase_order_id = fields.Many2one('purchase.order', string='Purchase Order Ref', 
                                         required=True, ondelete='restrict', tracking=True)
@@ -155,7 +163,7 @@ class CustomQualityGrading(models.Model):
     tester_id = fields.Many2one('res.users', string='Tested By', 
                                 default=lambda self: self.env.user, required=True)
     
-    # NEW FIELD: Test Location
+    # NEW FIELD: Test Location edited to include the states of the report. 
     test_location_id = fields.Many2one('stock.location', string='Test Location',
                                        help="The internal location where the quality testing took place.")
     
@@ -169,8 +177,7 @@ class CustomQualityGrading(models.Model):
         # context={'default_product_id': fields.Many2one.to_ids},
         context={'default_product_id': 'product_id'},
         # The default lot name will be generated on the Lot model itself
-        help="The main Lot/Batch number assigned during the initial Purchase Receipt."
-    )
+        help="The main Lot/Batch number assigned during the initial Purchase Receipt.")
 
     # NEW FIELD: Computed field to get available lots from the selected PO
     available_lot_ids = fields.Many2many(
@@ -231,21 +238,21 @@ class CustomQualityGrading(models.Model):
     
     # ... (existing code and imports) ...
 
-    @api.model
-    def create(self, vals):
+    # @api.model
+    # def create(self, vals):
         # Call super first to create the record
-        new_report = super(CustomQualityGrading, self).create(vals)
+        #new_report = super(CustomQualityGrading, self).create(vals)
         
         # Check if the created report is already complete and should be processed
         # We must explicitly check the conditions here or call the processing logic
         
         # Simple check: If parent_lot_id is not provided, we prevent creation for now
-        if not vals.get('parent_lot_id'):
-            # NOTE: You can choose to allow creation but prevent processing.
-            # For simplicity, let's keep the processing check in 'write' for now
-            pass 
+        # if not vals.get('parent_lot_id'):
+        #     # NOT-E: You can choose to allow creation but prevent processing.
+        #     # For simplicity, let's keep the processing check in 'write' for now
+        #     pass 
             
-        return new_report
+        # return new_report
         
     # We will focus on improving the validation within write() 
     # to ensure it always runs when the critical fields are saved.
@@ -375,3 +382,61 @@ class CustomQualityGrading(models.Model):
             
             # Set the available lots
             record.available_lot_ids = [(6, 0, lot_ids)]
+
+     # **NEW METHOD: Confirm Report**
+    def action_confirm(self):
+        """Confirm the quality grading report and trigger inventory operations"""
+        for record in self:
+            # Validate required fields
+            record._validate_report_data()
+            
+            # Change state to confirmed
+            record.write({'state': 'confirmed'})
+            
+            # Post message to chatter
+            record.message_post(
+                body=_("Quality Grading Report has been confirmed by %s") % self.env.user.name,
+                message_type='notification'
+            )
+        
+        return True
+    
+    # **NEW METHOD: Validation**
+    def _validate_report_data(self):
+        """Validate all required data before confirmation"""
+        for record in self:
+            # Check if all required fields are filled
+            if not record.purchase_order_id:
+                raise UserError(_("Purchase Order is required."))
+            if not record.product_id:
+                raise UserError(_("Product is required."))
+            if not record.parent_lot_id:
+                raise UserError(_("Parent Lot/Batch is required."))
+            if not record.tester_id:
+                raise UserError(_("Tester is required."))
+            if not record.qty_received:
+                raise UserError(_("Received Quantity must be greater than 0."))
+            
+            # Validate quantities
+            total_graded = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            if abs(total_graded - record.qty_received) > 0.01:  # Allow small rounding differences
+                raise UserError(_(
+                    "Total graded quantity (%.2f) must equal received quantity (%.2f). "
+                    "Current difference: %.2f"
+                ) % (total_graded, record.qty_received, abs(total_graded - record.qty_received)))
+            
+            # Check if at least one grade has quantity
+            if total_graded <= 0:
+                raise UserError(_("At least one grade must have a quantity greater than 0."))
+
+    # **NEW METHOD: Reset to Draft (for future use)**
+    def action_reset_to_draft(self):
+        """Reset report back to draft state"""
+        for record in self:
+            if record.state == 'confirmed':
+                record.write({'state': 'draft'})
+                record.message_post(
+                    body=_("Quality Grading Report has been reset to draft by %s") % self.env.user.name,
+                    message_type='notification'
+                )
+        return True

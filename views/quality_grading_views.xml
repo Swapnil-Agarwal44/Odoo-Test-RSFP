@@ -46,7 +46,8 @@
                     <field name="qty_received"/>
                     <field name="qty_total_graded"/>
                     <field name="tester_id"/>
-                    <field name="test_location_id"/> 
+                    <field name="test_location_id"/>
+                    <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/> 
                 </tree>
             </field>
         </record>
@@ -57,7 +58,10 @@
             <field name="arch" type="xml">
                 <form string="Quality Grading Report">
                     <header>
-                        </header>
+                        <button name="action_confirm" type="object" string="Confirm Report" 
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
+                    </header>
                     <sheet>
                         <!-- Add the invisible field here -->
                         <field name="available_lot_ids" invisible="1"/>
@@ -66,28 +70,28 @@
                         </div>
                         <group>
                             <group>
-                                <field name="purchase_order_id"/>
-                                <field name="product_id"/>
+                                <field name="purchase_order_id" readonly="state == 'confirmed'"/>
+                                <field name="product_id" readonly="state == 'confirmed'"/>
                                 <field name="uom_id" readonly="1" groups="uom.group_uom"/>
-                                <field name="parent_lot_id"/> 
+                                <field name="parent_lot_id" readonly="state == 'confirmed'"/> 
                             </group>
                             <group>
-                                <field name="receipt_date"/>
-                                <field name="tester_id"/>
-                                <field name="test_location_id"/>
+                                <field name="receipt_date" readonly="state == 'confirmed'"/>
+                                <field name="tester_id" readonly="state == 'confirmed'"/>
+                                <field name="test_location_id" readonly="state == 'confirmed'"/>
                             </group>
                         </group>
                         
                         <separator string="Grading Summary"/>
                         <group>
-                            <field name="qty_received"/>
-                            <field name="notes" placeholder="Enter general remarks, conclusions, or required follow-up actions here..."/>
+                            <field name="qty_received" readonly="state == 'confirmed'"/>
+                            <field name="notes" placeholder="Enter general remarks, conclusions, or required follow-up actions here..." readonly="state == 'confirmed'"/>
                         </group>
                         <group>
                             <group string="Quantities Graded">
-                                <field name="qty_grade_a"/>
-                                <field name="qty_grade_b"/>
-                                <field name="qty_grade_c"/>
+                                <field name="qty_grade_a" readonly="state == 'confirmed'"/>
+                                <field name="qty_grade_b" readonly="state == 'confirmed'"/>
+                                <field name="qty_grade_c" readonly="state == 'confirmed'"/>
                             </group>
                             <group string="Validation">
                                 <field name="qty_total_graded" decoration-success="qty_total_graded == qty_received"/>
@@ -96,7 +100,7 @@
 
                          <notebook>
                         <page string="Graded Product Characteristics and Valuation">
-                            <field name="test_line_ids">
+                            <field name="test_line_ids" readonly="state == 'confirmed'">
                                 <tree editable="bottom">
                                     <field name="grade_type" required="1"/> 
                                     
@@ -118,7 +122,7 @@
                             </field>
                         </page>
                         <page string="Attached Images">
-                            <field name="image_ids" mode="kanban,tree">
+                            <field name="image_ids" mode="kanban,tree" readonly="state == 'confirmed'">
                                 <kanban>
                                     <field name="name"/>
                                     <field name="location"/>
