@@ -163,12 +163,21 @@ class CustomQualityGrading(models.Model):
     parent_lot_id = fields.Many2one(
         'stock.lot', 
         string='Parent Lot/Batch', 
+        domain="[('id', 'in', available_lot_ids)]",  # Dynamic domain
         #required=True, # Lot is required to confirm the report and perform segregation
         # Pass product_id as default_product_id to the Lot model
         # context={'default_product_id': fields.Many2one.to_ids},
         context={'default_product_id': 'product_id'},
         # The default lot name will be generated on the Lot model itself
         help="The main Lot/Batch number assigned during the initial Purchase Receipt."
+    )
+
+    # NEW FIELD: Computed field to get available lots from the selected PO
+    available_lot_ids = fields.Many2many(
+        'stock.lot',
+        compute='_compute_available_lots',
+        store=False,
+        help="Technical field to filter lots based on selected Purchase Order"
     )
 
     # Grading Summary Fields
@@ -331,3 +340,38 @@ class CustomQualityGrading(models.Model):
         self.message_post(body=_(f"Grading completed. {len(grades)} Child Lots created and inventory moved."))
         
         return True
+    
+    @api.depends('purchase_order_id', 'product_id')
+    def _compute_available_lots(self):
+        """
+        Compute lots that are linked to the selected purchase order.
+        Lots are linked through stock moves in the purchase order's pickings.
+        """
+        for record in self:
+            if not record.purchase_order_id:
+                record.available_lot_ids = [(6, 0, [])]
+                continue
+            
+            # Get all pickings (receipts) related to this purchase order
+            pickings = record.purchase_order_id.picking_ids.filtered(
+                lambda p: p.state == 'done'  # Only completed receipts
+            )
+            
+            if not pickings:
+                record.available_lot_ids = [(6, 0, [])]
+                continue
+            
+            # Get all stock move lines from these pickings
+            move_lines = pickings.mapped('move_line_ids')
+            
+            # Filter by product if product_id is set
+            if record.product_id:
+                move_lines = move_lines.filtered(
+                    lambda ml: ml.product_id == record.product_id
+                )
+            
+            # Extract unique lot IDs
+            lot_ids = move_lines.mapped('lot_id').ids
+            
+            # Set the available lots
+            record.available_lot_ids = [(6, 0, lot_ids)]
