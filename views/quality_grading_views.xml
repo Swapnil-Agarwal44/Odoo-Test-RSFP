@@ -67,11 +67,12 @@
                                 <field name="purchase_order_id"/>
                                 <field name="product_id"/>
                                 <field name="uom_id" readonly="1" groups="uom.group_uom"/>
-                                <field name="test_location_id"/> 
+                                <field name="parent_lot_id"/> 
                             </group>
                             <group>
                                 <field name="receipt_date"/>
                                 <field name="tester_id"/>
+                                <field name="test_location_id"/>
                             </group>
                         </group>
                         

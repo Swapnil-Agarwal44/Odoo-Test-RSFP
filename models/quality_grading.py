@@ -220,4 +220,114 @@ class CustomQualityGrading(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.grading') or _('New')
         return super().create(vals_list)
     
+    # ... (existing code and imports) ...
+
+    @api.model
+    def create(self, vals):
+        # Call super first to create the record
+        new_report = super(CustomQualityGrading, self).create(vals)
+        
+        # Check if the created report is already complete and should be processed
+        # We must explicitly check the conditions here or call the processing logic
+        
+        # Simple check: If parent_lot_id is not provided, we prevent creation for now
+        if not vals.get('parent_lot_id'):
+            # NOTE: You can choose to allow creation but prevent processing.
+            # For simplicity, let's keep the processing check in 'write' for now
+            pass 
+            
+        return new_report
+        
+    # We will focus on improving the validation within write() 
+    # to ensure it always runs when the critical fields are saved.
+
+    def write(self, vals):
+    # 1. Call super first to save the data
+        res = super(CustomQualityGrading, self).write(vals)
+
+        for report in self:
+            # Check 1: Has the inventory been processed? If yes, skip.
+            if report.inventory_processed:
+                continue
+                
+            # Check 2: Check if the report is ready to be processed.
+            # This check should ONLY run if a critical field was changed, 
+            # OR if we are doing a mass save/update.
+            
+            # We assume the user is trying to finalize the report when
+            # they save after entering the graded quantities and parent lot.
+            
+            # We enforce the validation first. If any check fails, it raises UserError
+            # and prevents the processing logic below.
+            
+            # Validation checks (Use 'report' which has the latest, saved values)
+            if not report.parent_lot_id:
+                # We allow the save but stop processing
+                continue 
+                # OR: raise UserError("The Parent Lot/Batch ID must be set before processing.")
+                
+            if report.qty_received > 0 and report.qty_total_graded == report.qty_received:
+                # The report is fully graded and validated, so we process it.
+                
+                # Call the inventory generation logic
+                report._generate_graded_inventory_moves()
+                
+                # Mark as processed
+                report.write({'inventory_processed': True}) 
+                
+        return res
     
+
+    def _generate_graded_inventory_moves(self):
+        """
+        Creates child lots and stock moves to reflect the graded quantities.
+        Moves stock from the Parent Lot to the new Child Lots within the same location.
+        """
+        self.ensure_one()
+
+        # CRITICAL: Identify the source/destination location.
+        # We use the default location as a reliable reference.
+        # NOTE: You may need to verify 'stock.stock_location_stock' exists in your DB.
+        stock_location = self.env.ref('stock.stock_location_stock') 
+        
+        if not stock_location:
+            raise UserError(_("Configuration Error: Default Stock Location not found."))
+
+        grades = ['a', 'b', 'c']
+        parent_lot_name = self.parent_lot_id.name
+
+        for grade in grades:
+            qty_graded = getattr(self, f'qty_grade_{grade}')
+            
+            if qty_graded > 0:
+                graded_product = getattr(self, f'product_grade_{grade}_id')
+                
+                if not graded_product:
+                    raise UserError(_(f"Missing graded product reference for Grade {grade.upper()}."))
+
+                # 1. Generate Child Lot Name and Create Child Lot
+                child_lot_name = f"{parent_lot_name}-{grade.upper()}"
+                
+                child_lot = self.env['stock.lot'].create({ # Using the corrected model name 'stock.lot'
+                    'name': child_lot_name,
+                    'product_id': graded_product.id,
+                    'ref': parent_lot_name, # Reference the Parent Lot
+                })
+                
+                # 2. Create and Execute Stock Move
+                self.env['stock.move'].create({
+                    'name': _(f'Grading Move {parent_lot_name} to {child_lot_name}'),
+                    'product_id': graded_product.id,
+                    'product_uom_qty': qty_graded,
+                    'product_uom': graded_product.uom_id.id,
+                    'location_id': stock_location.id,      # Source (Parent Lot's location)
+                    'location_dest_id': stock_location.id, # Destination (Same location, new Lot)
+                    'restrict_lot_id': child_lot.id,       # Reserve stock for the NEW child lot
+                    'lot_id': self.parent_lot_id.id,       # Reserve stock FROM the OLD parent lot (Source Lot)
+                    'state': 'confirmed',
+                })._action_done() # Immediately execute the stock move
+
+        # Optional: Log the grading action for auditing
+        self.message_post(body=_(f"Grading completed. {len(grades)} Child Lots created and inventory moved."))
+        
+        return True
