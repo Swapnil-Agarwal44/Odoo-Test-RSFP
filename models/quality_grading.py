@@ -261,10 +261,10 @@ class CustomQualityGrading(models.Model):
     # 1. Call super first to save the data
         res = super(CustomQualityGrading, self).write(vals)
 
-        for report in self:
+        # for report in self:
             # Check 1: Has the inventory been processed? If yes, skip.
-            if report.inventory_processed:
-                continue
+            # if report.inventory_processed:
+                # continue
                 
             # Check 2: Check if the report is ready to be processed.
             # This check should ONLY run if a critical field was changed, 
@@ -277,76 +277,76 @@ class CustomQualityGrading(models.Model):
             # and prevents the processing logic below.
             
             # Validation checks (Use 'report' which has the latest, saved values)
-            if not report.parent_lot_id:
+            # if not report.parent_lot_id:
                 # We allow the save but stop processing
-                continue 
+                # continue 
                 # OR: raise UserError("The Parent Lot/Batch ID must be set before processing.")
                 
-            if report.qty_received > 0 and report.qty_total_graded == report.qty_received:
+            # if report.qty_received > 0 and report.qty_total_graded == report.qty_received:
                 # The report is fully graded and validated, so we process it.
                 
                 # Call the inventory generation logic
-                report._generate_graded_inventory_moves()
+                # report._generate_graded_inventory_moves()
                 
                 # Mark as processed
-                report.write({'inventory_processed': True}) 
+                # report.write({'inventory_processed': True}) 
                 
         return res
     
 
-    def _generate_graded_inventory_moves(self):
-        """
-        Creates child lots and stock moves to reflect the graded quantities.
-        Moves stock from the Parent Lot to the new Child Lots within the same location.
-        """
-        self.ensure_one()
+    # def _generate_graded_inventory_moves(self):
+    #     """
+    #     Creates child lots and stock moves to reflect the graded quantities.
+    #     Moves stock from the Parent Lot to the new Child Lots within the same location.
+    #     """
+    #     self.ensure_one()
 
-        # CRITICAL: Identify the source/destination location.
-        # We use the default location as a reliable reference.
-        # NOTE: You may need to verify 'stock.stock_location_stock' exists in your DB.
-        stock_location = self.env.ref('stock.stock_location_stock') 
+    #     # CRITICAL: Identify the source/destination location.
+    #     # We use the default location as a reliable reference.
+    #     # NOTE: You may need to verify 'stock.stock_location_stock' exists in your DB.
+    #     stock_location = self.env.ref('stock.stock_location_stock') 
         
-        if not stock_location:
-            raise UserError(_("Configuration Error: Default Stock Location not found."))
+    #     if not stock_location:
+    #         raise UserError(_("Configuration Error: Default Stock Location not found."))
 
-        grades = ['a', 'b', 'c']
-        parent_lot_name = self.parent_lot_id.name
+    #     # grades = ['a', 'b', 'c']
+    #     parent_lot_name = self.parent_lot_id.name
 
-        for grade in grades:
-            qty_graded = getattr(self, f'qty_grade_{grade}')
+    #     for grade in grades:
+    #         qty_graded = getattr(self, f'qty_grade_{grade}')
             
-            if qty_graded > 0:
-                graded_product = getattr(self, f'product_grade_{grade}_id')
+    #         if qty_graded > 0:
+    #             graded_product = getattr(self, f'product_grade_{grade}_id')
                 
-                if not graded_product:
-                    raise UserError(_(f"Missing graded product reference for Grade {grade.upper()}."))
+    #             if not graded_product:
+    #                 raise UserError(_(f"Missing graded product reference for Grade {grade.upper()}."))
 
-                # 1. Generate Child Lot Name and Create Child Lot
-                child_lot_name = f"{parent_lot_name}-{grade.upper()}"
+    #             # 1. Generate Child Lot Name and Create Child Lot
+    #             child_lot_name = f"{parent_lot_name}-{grade.upper()}"
                 
-                child_lot = self.env['stock.lot'].create({ # Using the corrected model name 'stock.lot'
-                    'name': child_lot_name,
-                    'product_id': graded_product.id,
-                    'ref': parent_lot_name, # Reference the Parent Lot
-                })
+    #             child_lot = self.env['stock.lot'].create({ # Using the corrected model name 'stock.lot'
+    #                 'name': child_lot_name,
+    #                 'product_id': graded_product.id,
+    #                 'ref': parent_lot_name, # Reference the Parent Lot
+    #             })
                 
-                # 2. Create and Execute Stock Move
-                self.env['stock.move'].create({
-                    'name': _(f'Grading Move {parent_lot_name} to {child_lot_name}'),
-                    'product_id': graded_product.id,
-                    'product_uom_qty': qty_graded,
-                    'product_uom': graded_product.uom_id.id,
-                    'location_id': stock_location.id,      # Source (Parent Lot's location)
-                    'location_dest_id': stock_location.id, # Destination (Same location, new Lot)
-                    'restrict_lot_id': child_lot.id,       # Reserve stock for the NEW child lot
-                    'lot_id': self.parent_lot_id.id,       # Reserve stock FROM the OLD parent lot (Source Lot)
-                    'state': 'confirmed',
-                })._action_done() # Immediately execute the stock move
+    #             # 2. Create and Execute Stock Move
+    #             self.env['stock.move'].create({
+    #                 'name': _(f'Grading Move {parent_lot_name} to {child_lot_name}'),
+    #                 'product_id': graded_product.id,
+    #                 'product_uom_qty': qty_graded,
+    #                 'product_uom': graded_product.uom_id.id,
+    #                 'location_id': stock_location.id,      # Source (Parent Lot's location)
+    #                 'location_dest_id': stock_location.id, # Destination (Same location, new Lot)
+    #                 'restrict_lot_id': child_lot.id,       # Reserve stock for the NEW child lot
+    #                 'lot_id': self.parent_lot_id.id,       # Reserve stock FROM the OLD parent lot (Source Lot)
+    #                 'state': 'confirmed',
+    #             })._action_done() # Immediately execute the stock move
 
-        # Optional: Log the grading action for auditing
-        self.message_post(body=_(f"Grading completed. {len(grades)} Child Lots created and inventory moved."))
+    #     # Optional: Log the grading action for auditing
+    #     self.message_post(body=_(f"Grading completed. {len(grades)} Child Lots created and inventory moved."))
         
-        return True
+    #     return True
     
     @api.depends('purchase_order_id', 'product_id')
     def _compute_available_lots(self):
