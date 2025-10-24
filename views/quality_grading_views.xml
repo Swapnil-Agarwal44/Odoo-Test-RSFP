@@ -102,7 +102,9 @@
                         <page string="Graded Product Characteristics and Valuation">
                             <field name="test_line_ids" readonly="state == 'confirmed'">
                                 <tree editable="bottom">
-                                    <field name="grade_type" required="1"/> 
+                                    <field name="graded_product_id" required="1"/>
+                                    <field name="available_graded_products" invisible="1"/>
+                                    <field name="grade_letter" readonly="1"/>
                                     
                                     <field name="uniform_color"/>
                                     <field name="visible_mold"/>
@@ -113,9 +115,7 @@
                                     <field name="aroma"/>
                                     
                                     <field name="moisture" widget="percentage"/>
-                                    
                                     <field name="qty_of_grade" readonly="1" string="Qty (Kg)"/>
-                                    
                                     <field name="rate_per_kg"/>
                                     <field name="total_amount" readonly="1"/>
                                 </tree>
