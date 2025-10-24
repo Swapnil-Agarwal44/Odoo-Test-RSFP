@@ -12,6 +12,14 @@ class StockLot(models.Model):
     _inherit = 'stock.lot'
     _description = 'Stock Lot Extension'
 
+    # Make the ref field clickable and add parent lot reference
+    parent_lot_id = fields.Many2one(
+        'stock.lot',
+        string='Parent Lot',
+        readonly=True,
+        help="The parent lot from which this child lot was created during quality grading"
+    )
+
     @api.model
     def create(self, vals):
         """Override create to inject custom lot name if not provided"""
@@ -43,6 +51,21 @@ class StockLot(models.Model):
         
         _logger.info(f"Final vals before super: {vals}")
         return super(StockLot, self).create(vals)
+    
+    def action_view_parent_lot(self):
+        """Action to view the parent lot"""
+        self.ensure_one()
+        if not self.parent_lot_id:
+            raise UserError("This lot does not have a parent lot.")
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Parent Lot',
+            'res_model': 'stock.lot',
+            'res_id': self.parent_lot_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     @api.model
     def default_get(self, fields_list):

@@ -488,6 +488,7 @@ class CustomQualityGrading(models.Model):
                         'name': child_lot_name,
                         'product_id': test_line.graded_product_id.id,
                         'ref': parent_lot_name,
+                        'parent_lot_id': self.parent_lot_id.id
                     })
                     created_lots.append(child_lot_name)
                     _logger.info(f"Child lot created successfully: {child_lot.name}")

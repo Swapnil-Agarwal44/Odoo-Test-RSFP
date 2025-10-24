@@ -28,6 +28,8 @@
 
         'data/lot_sequence_data.xml', 
 
+        'views/stock_lot_views.xml',
+
 
 
     ],

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Extend the stock lot form view to make ref readonly and add parent lot field -->
+        <record id="view_production_lot_form_inherit" model="ir.ui.view">
+            <field name="name">stock.lot.form.inherit.parent.lot</field>
+            <field name="model">stock.lot</field>
+            <field name="inherit_id" ref="stock.view_production_lot_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Make the ref field readonly -->
+                <xpath expr="//field[@name='ref']" position="attributes">
+                    <attribute name="readonly">1</attribute>
+                </xpath>
+                
+                <!-- Add parent lot field after ref field -->
+                <xpath expr="//field[@name='ref']" position="after">
+                    <field name="parent_lot_id" 
+                           widget="many2one_button" 
+                           invisible="not parent_lot_id"
+                           options="{'no_create': True, 'no_open': False}"/>
+                </xpath>
+                
+            </field>
+        </record>
+
+        <!-- Add header with button to view parent lot -->
+        <record id="view_production_lot_form_inherit_button" model="ir.ui.view">
+            <field name="name">stock.lot.form.inherit.parent.button</field>
+            <field name="model">stock.lot</field>
+            <field name="inherit_id" ref="view_production_lot_form_inherit"/>
+            <field name="arch" type="xml">
+                
+                <!-- Add header at the beginning of the form -->
+                <xpath expr="//form" position="inside">
+                    <header>
+                        <button name="action_view_parent_lot" 
+                                type="object" 
+                                string="View Parent Lot" 
+                                class="oe_highlight" 
+                                invisible="not parent_lot_id"/>
+                    </header>
+                </xpath>
+                
+            </field>
+        </record>
+
+        <!-- Tree view enhancement to show parent lot -->
+        <record id="view_production_lot_tree_inherit" model="ir.ui.view">
+            <field name="name">stock.lot.tree.inherit.parent.lot</field>
+            <field name="model">stock.lot</field>
+            <field name="inherit_id" ref="stock.view_production_lot_tree"/>
+            <field name="arch" type="xml">
+                
+                <!-- Add parent lot column -->
+                <xpath expr="//field[@name='ref']" position="after">
+                    <field name="parent_lot_id" optional="show"/>
+                </xpath>
+                
+            </field>
+        </record>
+    </data>
+</odoo>
