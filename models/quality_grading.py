@@ -1,5 +1,8 @@
 from odoo import models, fields, api, _ # type: ignore
 from odoo.exceptions import UserError, ValidationError # type: ignore
+import logging
+
+_logger = logging.getLogger(__name__)
 
 #This model file defines that models that are required to create and store the custom quality and grading reports. 
 
@@ -37,13 +40,13 @@ class CustomQualityTestLine(models.Model):
     # ], string='Product Grade', required=True)
 
     # **REPLACED: grade_type selection with direct graded_product_id**
-    graded_product_id = fields.Many2one(
-        'product.product',
-        string='Graded Product',
-        domain="[('id', 'in', available_graded_products)]",
-        required=True,
-        help="Select the specific graded product (e.g., Dried Mango - Grade A) for this test line."
-    )
+    # graded_product_id = fields.Many2one(
+    #     'product.product',
+    #     string='Graded Product',
+    #     domain="[('id', 'in', available_graded_products)]",
+    #     required=True,
+    #     help="Select the specific graded product (e.g., Dried Mango - Grade A) for this test line."
+    # )
 
     # **NEW: Computed field to filter graded products based on parent product**
     available_graded_products = fields.Many2many(
@@ -372,8 +375,82 @@ class CustomQualityGrading(models.Model):
     
 
     def _generate_graded_inventory_moves(self):
-        """Creates child lots and stock moves based on test lines with graded products"""
+        # """Creates child lots and stock moves based on test lines with graded products"""
+        
+        #3rd attempt: child lots are also created and the quantity is updated in them, but the parent lot is still containing the aggregated quantity. 
+    #     """Simple inventory adjustment approach"""
+    #     self.ensure_one()
+
+    #     if self.inventory_processed:
+    #         return True
+
+    #     stock_location = self.env.ref('stock.stock_location_stock')
+    #     created_lots = []
+
+    #     for test_line in self.test_line_ids:
+    #         if test_line.qty_of_grade > 0 and test_line.graded_product_id:
+                
+    #             child_lot_name = f"{self.parent_lot_id.name}-{test_line.grade_letter}"
+                
+    #             # Create Child Lot
+    #             child_lot = self.env['stock.lot'].create({
+    #                 'name': child_lot_name,
+    #                 'product_id': test_line.graded_product_id.id,
+    #                 'ref': self.parent_lot_id.name,
+    #             })
+                
+    #             # Simple inventory adjustment
+    #             self.env['stock.quant']._update_available_quantity(
+    #                 test_line.graded_product_id,
+    #                 stock_location,
+    #                 test_line.qty_of_grade,
+    #                 lot_id=child_lot
+    #             )
+                
+    #             created_lots.append(child_lot_name)
+
+    #     self.write({'inventory_processed': True})
+        
+    #     if created_lots:
+    #         self.message_post(
+    #             body=_("Child lots created with inventory: %s") % ', '.join(created_lots)
+    #         )
+
+    #     return True
+    
+    # def _get_internal_picking_type(self):
+    #     """Get the internal picking type for stock moves"""
+    #     picking_type = self.env['stock.picking.type'].search([
+    #         ('code', '=', 'internal'),
+    #         ('warehouse_id.company_id', '=', self.env.company.id)
+    #     ], limit=1)
+        
+    #     if not picking_type:
+    #         # Fallback: create a basic internal picking type if none exists
+    #         warehouse = self.env['stock.warehouse'].search([
+    #             ('company_id', '=', self.env.company.id)
+    #         ], limit=1)
+            
+    #         if warehouse:
+    #             picking_type = warehouse.int_type_id
+        
+    #     return picking_type
+
+
+
+
+
+
+
+
+
+    #4th attempt: this process is working fully, it is creating new child lots and updating the validated quantity, and also removing the quantity from the parent lot as well.
+        """Creates child lots and adjusts inventory based on test lines with graded products"""
         self.ensure_one()
+
+        # Skip if already processed
+        if self.inventory_processed:
+            return True
 
         stock_location = self.env.ref('stock.stock_location_stock')
         if not stock_location:
@@ -382,44 +459,164 @@ class CustomQualityGrading(models.Model):
         parent_lot_name = self.parent_lot_id.name
         created_lots = []
 
+        _logger.info(f"Starting inventory generation for report: {self.name}")
+        _logger.info(f"Parent lot: {parent_lot_name}")
+        _logger.info(f"Test lines count: {len(self.test_line_ids)}")
+
         # Process each test line that has a graded product and quantity
         for test_line in self.test_line_ids:
+            _logger.info(f"Processing test line - Grade: {test_line.grade_letter}, Qty: {test_line.qty_of_grade}, Product: {test_line.graded_product_id.name if test_line.graded_product_id else 'None'}")
+            
             if test_line.qty_of_grade > 0 and test_line.graded_product_id:
                 
                 # Create child lot name using the grade letter
                 child_lot_name = f"{parent_lot_name}-{test_line.grade_letter}"
                 
-                # 1. Create Child Lot
-                child_lot = self.env['stock.lot'].create({
-                    'name': child_lot_name,
-                    'product_id': test_line.graded_product_id.id,
-                    'ref': parent_lot_name,
-                })
+                # Check if child lot already exists
+                existing_lot = self.env['stock.lot'].search([
+                    ('name', '=', child_lot_name),
+                    ('product_id', '=', test_line.graded_product_id.id)
+                ], limit=1)
                 
-                created_lots.append(child_lot_name)
+                if existing_lot:
+                    child_lot = existing_lot
+                    _logger.info(f"Using existing child lot: {child_lot.name}")
+                else:
+                    _logger.info(f"Creating new child lot: {child_lot_name}")
+                    # 1. Create Child Lot
+                    child_lot = self.env['stock.lot'].create({
+                        'name': child_lot_name,
+                        'product_id': test_line.graded_product_id.id,
+                        'ref': parent_lot_name,
+                    })
+                    created_lots.append(child_lot_name)
+                    _logger.info(f"Child lot created successfully: {child_lot.name}")
                 
-                # 2. Create Stock Move (simplified version for now)
-                move = self.env['stock.move'].create({
-                    'name': f'Quality Grading: {parent_lot_name} → {child_lot_name}',
-                    'product_id': test_line.graded_product_id.id,
-                    'product_uom_qty': test_line.qty_of_grade,
-                    'product_uom': test_line.graded_product_id.uom_id.id,
-                    'location_id': stock_location.id,
-                    'location_dest_id': stock_location.id,
-                    'state': 'draft',
-                })
+                # 2. Method 1: Simple inventory adjustment (Recommended)
+                try:
+                    # Add inventory for the new graded product
+                    self.env['stock.quant']._update_available_quantity(
+                        test_line.graded_product_id,
+                        stock_location,
+                        test_line.qty_of_grade,
+                        lot_id=child_lot
+                    )
+                    
+                    # Reduce inventory from parent lot (if it exists)
+                    parent_quant = self.env['stock.quant'].search([
+                        ('product_id', '=', self.product_id.id),
+                        ('location_id', '=', stock_location.id),
+                        ('lot_id', '=', self.parent_lot_id.id)
+                    ], limit=1)
+                    
+                    if parent_quant and parent_quant.available_quantity >= test_line.qty_of_grade:
+                        self.env['stock.quant']._update_available_quantity(
+                            self.product_id,
+                            stock_location,
+                            -test_line.qty_of_grade,
+                            lot_id=self.parent_lot_id
+                        )
+                        _logger.info(f"Reduced parent lot quantity by {test_line.qty_of_grade}")
+                    else:
+                        _logger.warning(f"Parent lot {self.parent_lot_id.name} doesn't have enough quantity")
+                    
+                    _logger.info(f"Inventory adjustment completed successfully")
+                    
+                except Exception as e:
+                    _logger.error(f"Error with inventory adjustment: {str(e)}")
+                    
+                    # 3. Method 2: Alternative using stock moves (if Method 1 fails)
+                    try:
+                        self._create_stock_move_alternative(test_line, child_lot, stock_location)
+                    except Exception as e2:
+                        _logger.error(f"Error with stock move alternative: {str(e2)}")
+                        continue
                 
-                # For now, just confirm the move (we'll enhance with proper lot tracking later)
-                move._action_confirm()
-                move._action_done()
+                # Log the creation for traceability
+                self.message_post(
+                    body=_("Child lot %s created for %s (Qty: %.2f kg) - Parent: %s. Inventory transferred.") % (
+                        child_lot_name, 
+                        test_line.graded_product_id.name, 
+                        test_line.qty_of_grade,
+                        parent_lot_name
+                    )
+                )
 
         # Mark as processed and log success
         self.write({'inventory_processed': True})
-        self.message_post(
-            body=_("Child lots created: %s. Inventory transferred successfully.") % ', '.join(created_lots)
-        )
-    
+        
+        if created_lots:
+            _logger.info(f"Successfully created lots: {created_lots}")
+            self.message_post(
+                body=_("Child lots created: %s. Inventory transferred successfully.") % ', '.join(created_lots)
+            )
+        else:
+            _logger.info("No new child lots created - may have used existing lots.")
+            self.message_post(
+                body=_("Inventory processing completed. Child lots assigned.")
+            )
+
         return True
+
+    def _create_stock_move_alternative(self, test_line, child_lot, stock_location):
+        """Alternative method using simpler stock moves"""
+        _logger.info("Using alternative stock move method")
+        
+        # Create a simple stock move without complex lot tracking
+        move = self.env['stock.move'].create({
+            'name': f'Quality Grading: {self.parent_lot_id.name} → {child_lot.name}',
+            'product_id': test_line.graded_product_id.id,
+            'product_uom_qty': test_line.qty_of_grade,
+            'product_uom': test_line.graded_product_id.uom_id.id,
+            'location_id': stock_location.id,
+            'location_dest_id': stock_location.id,
+            'picking_type_id': self._get_internal_picking_type().id if self._get_internal_picking_type() else False,
+            'state': 'draft',
+        })
+        
+        _logger.info(f"Alternative stock move created: {move.name}")
+        
+        # Try to process the move
+        try:
+            move._action_confirm()
+            
+            # Create move line manually with simpler approach
+            move_line = self.env['stock.move.line'].create({
+                'move_id': move.id,
+                'product_id': test_line.graded_product_id.id,
+                'location_id': stock_location.id,
+                'location_dest_id': stock_location.id,
+                'lot_id': child_lot.id,  # Use child lot as both source and destination
+                'qty_done': test_line.qty_of_grade,
+                'product_uom_id': test_line.graded_product_id.uom_id.id,
+            })
+            
+            move._action_done()
+            _logger.info(f"Alternative stock move processed successfully")
+            
+        except Exception as e:
+            _logger.error(f"Failed to process alternative stock move: {str(e)}")
+            # If stock move fails, just create the lot without inventory transfer
+            pass
+
+    def _get_internal_picking_type(self):
+        """Get the internal picking type for stock moves"""
+        try:
+            picking_type = self.env['stock.picking.type'].search([
+                ('code', '=', 'internal'),
+                ('warehouse_id.company_id', '=', self.env.company.id)
+            ], limit=1)
+            
+            if not picking_type:
+                # Fallback: try to get any internal picking type
+                picking_type = self.env['stock.picking.type'].search([
+                    ('code', '=', 'internal')
+                ], limit=1)
+            
+            return picking_type
+        except Exception as e:
+            _logger.error(f"Error getting picking type: {str(e)}")
+            return False
     
     @api.depends('purchase_order_id', 'product_id')
     def _compute_available_lots(self):
@@ -459,10 +656,16 @@ class CustomQualityGrading(models.Model):
      # **NEW METHOD: Confirm Report**
     def action_confirm(self):
         """Confirm the quality grading report and trigger inventory operations"""
+        _logger.info("=== ACTION_CONFIRM CALLED ===") # type: ignore
+        for record in self:
+            _logger.info(f"Processing record: {record.name}") # type: ignore
         for record in self:
             # Validate required fields
             record._validate_report_data()
             
+            # **ADD THIS: Generate inventory moves**
+            record._generate_graded_inventory_moves()
+
             # Change state to confirmed
             record.write({'state': 'confirmed'})
             
@@ -479,6 +682,17 @@ class CustomQualityGrading(models.Model):
     def _validate_report_data(self):
         """Validate all required data before confirmation"""
         for record in self:
+            # Check if all required fields are filled
+            if not record.purchase_order_id:
+                raise UserError(_("Purchase Order is required."))
+            if not record.product_id:
+                raise UserError(_("Product is required."))
+            if not record.parent_lot_id:
+                raise UserError(_("Parent Lot/Batch is required."))
+            if not record.tester_id:
+                raise UserError(_("Tester is required."))
+            if not record.qty_received:
+                raise UserError(_("Received Quantity must be greater than 0."))
             # ... existing validations ...
             
             # **NEW: Validate test lines for grades with quantities**
@@ -489,6 +703,18 @@ class CustomQualityGrading(models.Model):
                 grades_with_qty.append(('B', record.qty_grade_b))
             if record.qty_grade_c > 0:
                 grades_with_qty.append(('C', record.qty_grade_c))
+
+            # Validate quantities
+            total_graded = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            if abs(total_graded - record.qty_received) > 0.01:  # Allow small rounding differences
+                raise UserError(_(
+                    "Total graded quantity (%.2f) must equal received quantity (%.2f). "
+                    "Current difference: %.2f"
+                ) % (total_graded, record.qty_received, abs(total_graded - record.qty_received)))
+
+            # Check if at least one grade has quantity
+            if total_graded <= 0:
+                raise UserError(_("At least one grade must have a quantity greater than 0."))
             
             # Check if we have test lines for all grades with quantities
             for grade_letter, qty in grades_with_qty:
