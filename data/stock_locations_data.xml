@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- 
+            This file creates the location structure for the organization's warehouse operations.
+            All locations are set as 'internal' type for stock tracking.
+            
+            Structure:
+            1. WH (Default Warehouse) - New locations under WH (same level as Stock)
+               - WH/Cooling Room
+               - WH/Testing
+               - WH/Processing
+               - WH/Packaging
+               - WH/Outgoing
+            
+            2. WH2 (Secondary Warehouse) - New physical location for interstate operations
+               - WH2/Incoming
+               - WH2/Storage
+               - WH2/Outgoing
+        -->
+
+        <!-- ========================================= -->
+        <!-- WH (Default Warehouse) - New Locations    -->
+        <!-- ========================================= -->
+        
+        <record id="stock_location_cooling_room" model="stock.location">
+            <field name="name">Cooling Room</field>
+            <!-- Reference the main warehouse location directly -->
+            <field name="location_id" ref="stock.stock_location_locations"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH-COOL</field>
+        </record>
+
+        <record id="stock_location_testing" model="stock.location">
+            <field name="name">Testing</field>
+            <field name="location_id" ref="stock.stock_location_locations"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH-TEST</field>
+        </record>
+
+        <record id="stock_location_processing" model="stock.location">
+            <field name="name">Processing</field>
+            <field name="location_id" ref="stock.stock_location_locations"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH-PROC</field>
+        </record>
+
+        <record id="stock_location_packaging" model="stock.location">
+            <field name="name">Packaging</field>
+            <field name="location_id" ref="stock.stock_location_locations"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH-PACK</field>
+        </record>
+
+        <record id="stock_location_outgoing" model="stock.location">
+            <field name="name">Outgoing</field>
+            <field name="location_id" ref="stock.stock_location_locations"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH-OUT</field>
+        </record>
+
+        <!-- ========================================= -->
+        <!-- WH2 (Secondary Warehouse) - New Location  -->
+        <!-- ========================================= -->
+        
+        <!-- Parent WH2 location (View type for grouping) -->
+        <record id="stock_location_wh2" model="stock.location">
+            <field name="name">WH2</field>
+            <field name="location_id" ref="stock.stock_location_locations"/>
+            <field name="usage">view</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH2</field>
+        </record>
+
+        <!-- WH2 Sub-locations -->
+        <record id="stock_location_wh2_incoming" model="stock.location">
+            <field name="name">Incoming</field>
+            <field name="location_id" ref="stock_location_wh2"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH2-IN</field>
+        </record>
+
+        <record id="stock_location_wh2_storage" model="stock.location">
+            <field name="name">Storage</field>
+            <field name="location_id" ref="stock_location_wh2"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH2-STOR</field>
+        </record>
+
+        <record id="stock_location_wh2_outgoing" model="stock.location">
+            <field name="name">Outgoing</field>
+            <field name="location_id" ref="stock_location_wh2"/>
+            <field name="usage">internal</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="barcode">WH2-OUT</field>
+        </record>
+
+    </data>
+</odoo>

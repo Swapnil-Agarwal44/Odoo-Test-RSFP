@@ -30,6 +30,8 @@
 
         'views/stock_lot_views.xml',
 
+        'data/stock_locations_data.xml',
+
 
 
     ],
