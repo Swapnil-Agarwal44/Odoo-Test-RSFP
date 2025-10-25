@@ -10,7 +10,7 @@
 -->
 
 
-<odoo>
+<!-- <odoo>
     <data> 
         <template id="report_quality_grading_document_detail">
             <t t-call="web.html_container">
@@ -94,6 +94,178 @@
                                     </tr>
                                 </table>
                             </t>
+                            
+                            <t t-if="doc.image_ids">
+                                <div style="page-break-before: always !important;"> 
+                                    <h4 class="mt-5">Attached Images</h4>
+                                    <t t-foreach="range(0, len(doc.image_ids), 3)" t-as="i">
+                                        <div class="row">
+                                            <t t-foreach="doc.image_ids[i:i+3]" t-as="img">
+                                                <div class="col-4 mb-4"> 
+                                                    <div style="width: 100%; padding-bottom: 75%; position: relative; border: 1px solid #ccc;">
+                                                        <img t-attf-src="data:image/png;base64,{{img.image}}" 
+                                                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"/>
+                                                    </div>
+                                                    <p class="text-center mt-2" style="font-size: 0.9em;">
+                                                        <strong><span t-field="img.name"/></strong> (Location: <span t-field="img.location"/>)
+                                                    </p>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<odoo>
+    <data> 
+        <template id="report_quality_grading_document_detail">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            
+                            <h2 class="mt-3" style="text-align: center;">Quality Grading Report: <span t-field="doc.name"/></h2>
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <strong>Purchase Order:</strong> <span t-field="doc.purchase_order_id.name"/><br/>
+                                    <strong>Product Tested:</strong> <span t-field="doc.product_id.display_name"/><br/>
+                                    <strong>Parent Lot/Batch:</strong> <span t-field="doc.parent_lot_id.name"/><br/>
+                                    <strong>Total Qty Received:</strong> <span t-field="doc.qty_received"/> <span t-field="doc.uom_id.name"/>
+                                </div>
+                                <div class="col-6 text-right">
+                                    <strong>Testing Date:</strong> <span t-field="doc.receipt_date"/><br/>
+                                    <strong>Tested By:</strong> <span t-field="doc.tester_id.name"/><br/>
+                                    <strong>Test Location:</strong> <span t-field="doc.test_location_id.display_name"/><br/>
+                                    <strong>Status:</strong> <span t-field="doc.state"/>
+                                </div>
+                            </div>
+                            <hr/>
+                            
+                            <t t-if="doc.notes">
+                                <h4>General Remarks</h4>
+                                <div class="alert alert-info" role="alert">
+                                    <p><span t-field="doc.notes"/></p>
+                                </div>
+                            </t>
+
+                            <h4>Graded Product Lines</h4>
+                            <table class="table table-sm table-bordered">
+                                <thead style="background-color: #f2f2f2;">
+                                    <tr>
+                                        <th>Grade</th>
+                                        <th>Graded Product</th>
+                                        <th class="text-right">Qty (kg)</th>
+                                        <th class="text-right">Rate/Kg</th>
+                                        <th class="text-right">Total Amount</th>
+                                        <th>Freshness</th>
+                                        <th>Texture</th>
+                                        <th>Moisture (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="doc.test_line_ids" t-as="line">
+                                        <tr>
+                                            <td><span t-field="line.grade_letter"/></td>
+                                            <td><span t-field="line.graded_product_id.name"/></td>
+                                            <td class="text-right"><span t-field="line.qty_of_grade"/></td>
+                                            <td class="text-right"><span t-field="line.rate_per_kg"/></td>
+                                            <td class="text-right">
+                                                <strong><span t-field="line.total_amount" t-options='{"widget": "monetary", "display_currency": doc.purchase_order_id.currency_id}'/></strong>
+                                            </td>
+                                            <td><span t-field="line.freshness"/></td>
+                                            <td><span t-field="line.texture"/></td>
+                                            <td><span t-field="line.moisture"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                            
+                            <h5 class="mt-4">Detailed Quality Attributes</h5>
+                            <t t-foreach="doc.test_line_ids" t-as="line">
+                                <h6>Grade <span t-field="line.grade_letter"/> - <span t-field="line.graded_product_id.name"/>:</h6>
+                                <table class="table table-sm table-condensed mb-4" style="width: 60%;">
+                                    <tr>
+                                        <td style="width: 30%;">Uniform Color:</td>
+                                        <td style="width: 20%;"><t t-esc="line.uniform_color and 'Yes' or 'No'"/></td> 
+                                        
+                                        <td style="width: 30%;">Visible Mold:</td>
+                                        <td style="width: 20%;"><t t-esc="line.visible_mold and 'Yes' or 'No'"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Physical Damage:</td>
+                                        <td><t t-esc="line.physical_damage and 'Yes' or 'No'"/></td>
+                                        
+                                        <td>Pest Free:</td>
+                                        <td><t t-esc="line.pest_free and 'Yes' or 'No'"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Aroma:</td>
+                                        <td colspan="3"><span t-field="line.aroma"/></td>
+                                    </tr>
+                                </table>
+                            </t>
+                            
+                            <!-- Summary Section -->
+                            <div class="row mt-4">
+                                <div class="col-6">
+                                    <h5>Grading Summary</h5>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Grade A Quantity:</strong></td>
+                                            <td class="text-right"><span t-field="doc.qty_grade_a"/> <span t-field="doc.uom_id.name"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Grade B Quantity:</strong></td>
+                                            <td class="text-right"><span t-field="doc.qty_grade_b"/> <span t-field="doc.uom_id.name"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Grade C Quantity:</strong></td>
+                                            <td class="text-right"><span t-field="doc.qty_grade_c"/> <span t-field="doc.uom_id.name"/></td>
+                                        </tr>
+                                        <tr style="border-top: 2px solid #000;">
+                                            <td><strong>Total Graded:</strong></td>
+                                            <td class="text-right"><strong><span t-field="doc.qty_total_graded"/> <span t-field="doc.uom_id.name"/></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-6">
+                                    <h5>Child Lots Created</h5>
+                                    <t t-if="doc.inventory_processed">
+                                        <p class="text-success">✓ Inventory processing completed</p>
+                                        <t t-foreach="doc.test_line_ids" t-as="line">
+                                            <t t-if="line.qty_of_grade > 0">
+                                                <p><strong><span t-esc="doc.parent_lot_id.name"/>-<span t-field="line.grade_letter"/></strong> (Qty: <span t-field="line.qty_of_grade"/> kg)</p>
+                                            </t>
+                                        </t>
+                                    </t>
+                                    <t t-else="">
+                                        <p class="text-warning">⚠ Inventory processing pending</p>
+                                    </t>
+                                </div>
+                            </div>
                             
                             <t t-if="doc.image_ids">
                                 <div style="page-break-before: always !important;"> 
