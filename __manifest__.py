@@ -9,6 +9,7 @@
         'mail',
         'stock',
         'product',
+        'barcodes',
     ],
     'data': [
         'security/ir.model.access.csv',

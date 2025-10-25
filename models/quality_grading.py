@@ -292,7 +292,15 @@ class CustomQualityGrading(models.Model):
     default=False,
     copy=False,
     help="Indicates if the stock moves for grading have been generated."
-)
+    )
+
+    # NEW FIELD: Get created child lots for barcode printing
+    child_lot_ids = fields.Many2many(
+    'stock.lot',
+    compute='_compute_child_lot_ids',
+    string='Created Child Lots',
+    help="Child lots created from this quality grading report"
+    )
 
     # Computed fields and Constraints
     @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
@@ -307,6 +315,23 @@ class CustomQualityGrading(models.Model):
         for record in self:
             if record.qty_total_graded > record.qty_received:
                 raise UserError(_("The total graded quantity (A+B+C) cannot exceed the quantity received."))
+            
+    @api.depends('parent_lot_id', 'inventory_processed', 'test_line_ids')
+    def _compute_child_lot_ids(self):
+        """Compute child lots created from this report"""
+        for record in self:
+            if not record.parent_lot_id or not record.inventory_processed:
+                record.child_lot_ids = [(6, 0, [])]
+                continue
+            
+            # Find child lots that reference this parent lot
+            parent_lot_name = record.parent_lot_id.name
+            child_lots = self.env['stock.lot'].search([
+                ('ref', '=', parent_lot_name),
+                ('parent_lot_id', '=', record.parent_lot_id.id)
+            ])
+            
+            record.child_lot_ids = [(6, 0, child_lots.ids)]
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -676,7 +701,18 @@ class CustomQualityGrading(models.Model):
                 message_type='notification'
             )
         
-        return True
+        # **NEW: Automatically print the report with barcodes after confirmation**
+        return self._print_report_with_barcodes()
+    
+    def _print_report_with_barcodes(self):
+        """Print the quality grading report automatically after confirmation"""
+        self.ensure_one()
+        
+        # Get the report action
+        report = self.env.ref('custom_rsfp_module.action_report_quality_grading_detail')
+        
+        # Return the report action to automatically print/download
+        return report.report_action(self)
     
     # **NEW METHOD: Validation**
     # **UPDATE: Enhanced validation method**
