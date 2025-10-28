@@ -33,6 +33,18 @@
 
         'data/stock_locations_data.xml',
 
+        'views/sorting_report_views.xml',  # NEW: Add this line
+
+        'views/quality_report_views.xml',  # NEW: Add this line
+
+        'views/sorting_report_action.xml',  # NEW: Add this
+
+        'views/quality_report_action.xml',  # NEW: Add this
+
+        'reports/sorting_report_templates.xml',  # NEW: Add this
+        
+        'reports/quality_report_templates.xml',  # NEW: Add this
+
 
 
     ],

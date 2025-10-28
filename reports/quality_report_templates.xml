@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="report_quality_document_detail">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <!-- Header -->
+                            <h2 class="mt-3" style="text-align: center;">Quality Testing Report: <span t-field="doc.name"/></h2>
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <strong>Child Lot:</strong> <span t-field="doc.child_lot_id.name"/><br/>
+                                    <strong>Parent Lot:</strong> <span t-field="doc.parent_lot_id.name"/><br/>
+                                    <strong>Product:</strong> <span t-field="doc.product_id.display_name"/><br/>
+                                    <strong>Lot Quantity:</strong> <span t-field="doc.lot_qty_total"/> <span t-field="doc.uom_id.name"/>
+                                </div>
+                                <div class="col-6 text-right">
+                                    <strong>Testing Date:</strong> <span t-field="doc.testing_date"/><br/>
+                                    <strong>Tested By:</strong> <span t-field="doc.tester_id.name"/><br/>
+                                    <strong>Test Location:</strong> <span t-field="doc.test_location_id.display_name"/><br/>
+                                    <strong>Status:</strong> <span t-field="doc.state"/>
+                                </div>
+                            </div>
+                            <hr/>
+
+                            <!-- Quality Characteristics -->
+                            <h4>Quality Test Results</h4>
+                            <div class="row">
+                                <div class="col-6">
+                                    <h5>Physical Characteristics</h5>
+                                    <table class="table table-sm table-condensed">
+                                        <tr>
+                                            <td style="width: 70%;">Uniform Color:</td>
+                                            <td><t t-esc="doc.uniform_color and '✓ Yes' or '✗ No'"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Visible Mold:</td>
+                                            <td><t t-esc="doc.visible_mold and '✗ Yes' or '✓ No'"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Physical Damage:</td>
+                                            <td><t t-esc="doc.physical_damage and '✗ Yes' or '✓ No'"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Pest Free:</td>
+                                            <td><t t-esc="doc.pest_free and '✓ Yes' or '✗ No'"/></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-6">
+                                    <h5>Quality Attributes</h5>
+                                    <table class="table table-sm table-condensed">
+                                        <tr>
+                                            <td style="width: 50%;">Freshness:</td>
+                                            <td><span t-field="doc.freshness"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Texture:</td>
+                                            <td><span t-field="doc.texture"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Aroma:</td>
+                                            <td><span t-field="doc.aroma"/></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Moisture (%):</td>
+                                            <td><span t-field="doc.moisture"/>%</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Valuation -->
+                            <h4>Valuation</h4>
+                            <table class="table table-sm table-bordered" style="width: 50%;">
+                                <tr>
+                                    <td><strong>Rate per Kg:</strong></td>
+                                    <td class="text-right"><span t-field="doc.rate_per_kg"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Quantity:</strong></td>
+                                    <td class="text-right"><span t-field="doc.lot_qty_total"/> kg</td>
+                                </tr>
+                                <tr style="border-top: 2px solid #000; font-weight: bold;">
+                                    <td><strong>Total Amount:</strong></td>
+                                    <td class="text-right"><strong><span t-field="doc.total_amount"/></strong></td>
+                                </tr>
+                            </table>
+
+                            <!-- Notes -->
+                            <t t-if="doc.notes">
+                                <h4>Testing Notes</h4>
+                                <div class="alert alert-info" role="alert">
+                                    <p><span t-field="doc.notes"/></p>
+                                </div>
+                            </t>
+
+                            <!-- Images -->
+                            <t t-if="doc.image_ids">
+                                <div style="page-break-before: always !important;">
+                                    <h4 class="mt-5">Test Images</h4>
+                                    <t t-foreach="range(0, len(doc.image_ids), 3)" t-as="i">
+                                        <div class="row">
+                                            <t t-foreach="doc.image_ids[i:i+3]" t-as="img">
+                                                <div class="col-4 mb-4">
+                                                    <div style="width: 100%; padding-bottom: 75%; position: relative; border: 1px solid #ccc;">
+                                                        <img t-attf-src="data:image/png;base64,{{img.image}}" 
+                                                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"/>
+                                                    </div>
+                                                    <p class="text-center mt-2" style="font-size: 0.9em;">
+                                                        <strong><span t-field="img.name"/></strong><br/>
+                                                        Location: <span t-field="img.location"/>
+                                                    </p>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+
+                            <!-- Child Lot Barcode -->
+                            <div style="page-break-before: always !important;">
+                                <h2 class="mt-3" style="text-align: center;">Child Lot Barcode Label</h2>
+                                <div class="row justify-content-center">
+                                    <div class="col-8">
+                                        <div style="border: 2px solid #000; padding: 30px; text-align: center;">
+                                            <!-- Barcode -->
+                                            <div style="margin-bottom: 15px;">
+                                                <img t-att-src="'/report/barcode/Code128/%s?width=500&amp;height=120' % doc.child_lot_id.name" 
+                                                style="max-width: 100%; height: auto;" 
+                                                alt="Barcode"/>
+                                            </div>
+                                            
+                                            <!-- Lot Information -->
+                                            <div style="font-weight: bold; font-size: 20px; margin-bottom: 10px;">
+                                                <span t-field="doc.child_lot_id.name"/>
+                                            </div>
+                                            
+                                            <div style="font-size: 14px; margin-bottom: 8px;">
+                                                Product: <span t-field="doc.product_id.name"/>
+                                            </div>
+                                            
+                                            <div style="font-size: 14px; margin-bottom: 8px;">
+                                                Parent Lot: <span t-field="doc.parent_lot_id.name"/>
+                                            </div>
+                                            
+                                            <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                                                Qty: <span t-field="doc.lot_qty_total"/> kg
+                                            </div>
+                                            
+                                            <div style="font-size: 14px; font-weight: bold; margin-bottom: 15px;">
+                                                Rate: <span t-field="doc.rate_per_kg"/> per kg
+                                            </div>
+                                            
+                                            <div style="font-size: 12px; color: #666;">
+                                                Tested: <span t-field="doc.testing_date"/> | Quality Report: <span t-field="doc.name"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Quality Report Tree View -->
+        <record id="view_quality_report_tree" model="ir.ui.view">
+            <field name="name">custom.quality.report.tree</field>
+            <field name="model">custom.quality.report</field>
+            <field name="arch" type="xml">
+                <tree string="Quality Reports">
+                    <field name="name"/>
+                    <field name="child_lot_id"/>
+                    <field name="parent_lot_id"/>
+                    <field name="product_id"/>
+                    <field name="testing_date"/>
+                    <field name="tester_id"/>
+                    <field name="lot_qty_total"/>
+                    <field name="rate_per_kg"/>
+                    <field name="total_amount"/>
+                    <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Quality Report Form View -->
+        <record id="view_quality_report_form" model="ir.ui.view">
+            <field name="name">custom.quality.report.form</field>
+            <field name="model">custom.quality.report</field>
+            <field name="arch" type="xml">
+                <form string="Quality Report">
+                    <header>
+                        <button name="action_confirm" type="object" string="Confirm Report" 
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                        <button name="action_reset_to_draft" type="object" string="Reset to Draft" 
+                            invisible="state != 'confirmed'"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        
+                        <!-- Reference Information -->
+                        <group>
+                            <group>
+                                <field name="child_lot_id" readonly="state == 'confirmed'" 
+                                       options="{'no_create': True}"/>
+                                <field name="parent_lot_id" readonly="1"/>
+                                <field name="product_id" readonly="1"/>
+                                <field name="uom_id" readonly="1" groups="uom.group_uom"/>
+                                <field name="sorting_report_id" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="testing_date" readonly="state == 'confirmed'"/>
+                                <field name="tester_id" readonly="state == 'confirmed'"/>
+                                <field name="test_location_id" readonly="state == 'confirmed'"/>
+                                <field name="lot_qty_total" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <!-- Valuation -->
+                        <separator string="Valuation"/>
+                        <group>
+                            <group>
+                                <field name="rate_per_kg" readonly="state == 'confirmed'"/>
+                                <field name="total_amount" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <!-- Quality Testing Tab -->
+                            <page string="Quality Testing">
+                                <group>
+                                    <group string="Physical Characteristics">
+                                        <field name="uniform_color" readonly="state == 'confirmed'"/>
+                                        <field name="visible_mold" readonly="state == 'confirmed'"/>
+                                        <field name="physical_damage" readonly="state == 'confirmed'"/>
+                                        <field name="pest_free" readonly="state == 'confirmed'"/>
+                                    </group>
+                                    <group string="Quality Attributes">
+                                        <field name="freshness" readonly="state == 'confirmed'"/>
+                                        <field name="texture" readonly="state == 'confirmed'"/>
+                                        <field name="aroma" readonly="state == 'confirmed'"/>
+                                        <field name="moisture" readonly="state == 'confirmed'"/>
+                                    </group>
+                                </group>
+                                
+                                <group>
+                                    <field name="notes" placeholder="Quality testing notes and observations..." 
+                                           readonly="state == 'confirmed'"/>
+                                </group>
+                            </page>
+
+                            <!-- Images Tab -->
+                            <page string="Images">
+                                <field name="image_ids" mode="kanban,tree" readonly="state == 'confirmed'">
+                                    <kanban>
+                                        <field name="name"/>
+                                        <field name="location"/>
+                                        <field name="image"/>
+                                        <templates>
+                                            <t t-name="kanban-box">
+                                                <div t-attf-class="oe_kanban_global_click">
+                                                    <div class="o_kanban_image">
+                                                        <img alt="Image" t-att-src="kanban_image('custom.quality.report.image', 'image', record.id.raw_value)"/>
+                                                    </div>
+                                                    <div class="oe_kanban_details">
+                                                        <strong><field name="name"/></strong>
+                                                        <div>Location: <field name="location"/></div>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </templates>
+                                    </kanban>
+                                    <form>
+                                        <group>
+                                            <field name="name"/>
+                                            <field name="location"/>
+                                            <field name="image" widget="image"/>
+                                        </group>
+                                    </form>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                        <field name="activity_ids" widget="mail_activity"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <!-- Quality Report Action -->
+        <record id="action_quality_report" model="ir.actions.act_window">
+            <field name="name">Quality Reports</field>
+            <field name="res_model">custom.quality.report</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create a new Quality Report
+                </p>
+                <p>
+                    Test individual child lots created from sorting process.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>

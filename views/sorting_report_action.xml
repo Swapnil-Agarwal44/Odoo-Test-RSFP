@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_sorting_detail" model="ir.actions.report">
+        <field name="name">Sorting Report</field>
+        <field name="model">custom.sorting.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">custom_rsfp_module.report_sorting_document_detail</field>
+        <field name="report_file">custom.sorting.report</field>
+        <field name="binding_model_id" ref="model_custom_sorting_report"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

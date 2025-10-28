@@ -4,5 +4,7 @@ from . import stock_production_lot
 from . import product_extension
 from . import purchase_order
 from . import quality_grading
+from . import quality_sorting
+from . import quality_report
 from . import report_wizard
 from . import rsfp_enquiry_id

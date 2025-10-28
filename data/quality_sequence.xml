@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!-- This XML file defines the automatic sequence numbering for Quality Grading Reports:
      - Creates a sequence record that generates unique identifiers (e.g., QR-0001, QR-0002)
      - Used by the create() method in custom.quality.grading model
@@ -10,12 +11,31 @@
 
 <odoo noupdate="1">
     <data noupdate="1">
-    <record id="seq_custom_quality_grading" model="ir.sequence">
-        <field name="name">Quality Grading Report Sequence</field>
-        <field name="code">custom.quality.grading</field>
-        <field name="prefix">QR-</field>
-        <field name="padding">4</field>
-        <field name="company_id" eval="False"/>
-    </record>
+        <!-- Existing Quality Grading Report Sequence -->
+        <record id="seq_custom_quality_grading" model="ir.sequence">
+            <field name="name">Quality Grading Report Sequence</field>
+            <field name="code">custom.quality.grading</field>
+            <field name="prefix">QR-</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- NEW: Sorting Report Sequence -->
+        <record id="seq_custom_sorting_report" model="ir.sequence">
+            <field name="name">Sorting Report Sequence</field>
+            <field name="code">custom.sorting.report</field>
+            <field name="prefix">SORT-</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- NEW: Quality Report Sequence -->
+        <record id="seq_custom_quality_report" model="ir.sequence">
+            <field name="name">Quality Report Sequence</field>
+            <field name="code">custom.quality.report</field>
+            <field name="prefix">QT-</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
     </data>
 </odoo>

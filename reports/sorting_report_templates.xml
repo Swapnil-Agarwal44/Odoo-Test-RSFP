@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="report_sorting_document_detail">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <!-- Header -->
+                            <h2 class="mt-3" style="text-align: center;">Sorting Report: <span t-field="doc.name"/></h2>
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <strong>Parent Lot:</strong> <span t-field="doc.parent_lot_id.name"/><br/>
+                                    <strong>Product:</strong> <span t-field="doc.product_id.display_name"/><br/>
+                                    <strong>Purchase Order:</strong> <span t-field="doc.purchase_order_id.name"/><br/>
+                                    <strong>Parent Lot Quantity:</strong> <span t-field="doc.parent_qty_total"/> <span t-field="doc.uom_id.name"/>
+                                </div>
+                                <div class="col-6 text-right">
+                                    <strong>Sorting Date:</strong> <span t-field="doc.sorting_date"/><br/>
+                                    <strong>Sorted By:</strong> <span t-field="doc.sorter_id.name"/><br/>
+                                    <strong>Location:</strong> <span t-field="doc.sorting_location_id.display_name"/><br/>
+                                    <strong>Status:</strong> <span t-field="doc.state"/>
+                                </div>
+                            </div>
+                            <hr/>
+
+                            <!-- Sorting Summary -->
+                            <h4>Sorting Summary</h4>
+                            <table class="table table-sm table-bordered">
+                                <thead style="background-color: #f2f2f2;">
+                                    <tr>
+                                        <th>Grade</th>
+                                        <th class="text-right">Quantity (kg)</th>
+                                        <th class="text-right">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-if="doc.qty_grade_a > 0">
+                                        <td><strong>Grade A</strong></td>
+                                        <td class="text-right"><span t-field="doc.qty_grade_a"/></td>
+                                        <td class="text-right"><t t-esc="round((doc.qty_grade_a / doc.parent_qty_total) * 100, 1)"/>%</td>
+                                    </tr>
+                                    <tr t-if="doc.qty_grade_b > 0">
+                                        <td><strong>Grade B</strong></td>
+                                        <td class="text-right"><span t-field="doc.qty_grade_b"/></td>
+                                        <td class="text-right"><t t-esc="round((doc.qty_grade_b / doc.parent_qty_total) * 100, 1)"/>%</td>
+                                    </tr>
+                                    <tr t-if="doc.qty_grade_c > 0">
+                                        <td><strong>Grade C</strong></td>
+                                        <td class="text-right"><span t-field="doc.qty_grade_c"/></td>
+                                        <td class="text-right"><t t-esc="round((doc.qty_grade_c / doc.parent_qty_total) * 100, 1)"/>%</td>
+                                    </tr>
+                                    <tr style="border-top: 2px solid #000; font-weight: bold;">
+                                        <td><strong>Total Sorted</strong></td>
+                                        <td class="text-right"><strong><span t-field="doc.qty_total_sorted"/></strong></td>
+                                        <td class="text-right"><strong>100%</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Notes -->
+                            <t t-if="doc.notes">
+                                <h4>Sorting Notes</h4>
+                                <div class="alert alert-info" role="alert">
+                                    <p><span t-field="doc.notes"/></p>
+                                </div>
+                            </t>
+
+                            <!-- Child Lot Labels (if confirmed) -->
+                            <t t-if="doc.state == 'confirmed' and doc.child_lot_ids">
+                                <div style="page-break-before: always !important;">
+                                    <h2 class="mt-3" style="text-align: center;">Child Lot Barcode Labels</h2>
+                                    <p class="text-center mb-4">Generated from Sorting Report: <span t-field="doc.name"/></p>
+                                    
+                                    <div class="row">
+                                        <t t-foreach="doc.child_lot_ids" t-as="lot">
+                                            <div class="col-6 mb-4">
+                                                <div style="border: 2px solid #000; padding: 20px; text-align: center; min-height: 200px;">
+                                                    <!-- Barcode -->
+                                                    <div style="margin-bottom: 10px;">
+                                                        <img t-att-src="'/report/barcode/Code128/%s?width=400&amp;height=100' % lot.name" 
+                                                        style="max-width: 100%; height: auto;" 
+                                                        alt="Barcode"/>
+                                                    </div>
+                                                    
+                                                    <!-- Lot Information -->
+                                                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">
+                                                        <span t-field="lot.name"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 12px; margin-bottom: 5px;">
+                                                        Product: <span t-field="lot.product_id.name"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 12px; margin-bottom: 5px;">
+                                                        Parent Lot: <span t-field="lot.ref"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 12px; font-weight: bold;">
+                                                        Qty: <span t-field="lot.product_qty"/> kg
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 10px; color: #666; margin-top: 10px;">
+                                                        Sorted: <span t-field="doc.sorting_date"/>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    
+                                    <!-- Instructions -->
+                                    <div class="mt-4" style="border-top: 1px solid #ccc; padding-top: 10px;">
+                                        <p style="font-size: 10px; color: #666;">
+                                            <strong>Instructions:</strong> Cut along the borders to separate individual barcode labels. 
+                                            Attach each label to the corresponding graded product container.
+                                        </p>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

@@ -4,3 +4,6 @@ access_quality_test_line_user,Quality Test Line User,model_custom_quality_test_l
 access_quality_image_user,Quality Image User,model_custom_quality_image,base.group_user,1,1,1,1
 access_quality_report_wizard,Quality Report Wizard User,model_custom_quality_report_wizard,base.group_user,1,1,1,1
 access_rsfp_enquiry_id,RSFP Enquiry ID User,model_rsfp_enquiry_id,base.group_user,1,1,1,1
+access_sorting_report_user,Sorting Report User,model_custom_sorting_report,base.group_user,1,1,1,1
+access_quality_report_user,Quality Report User,model_custom_quality_report,base.group_user,1,1,1,1
+access_quality_report_image_user,Quality Report Image User,model_custom_quality_report_image,base.group_user,1,1,1,1

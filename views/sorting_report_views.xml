@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Sorting Report Tree View -->
+        <record id="view_sorting_report_tree" model="ir.ui.view">
+            <field name="name">custom.sorting.report.tree</field>
+            <field name="model">custom.sorting.report</field>
+            <field name="arch" type="xml">
+                <tree string="Sorting Reports">
+                    <field name="name"/>
+                    <field name="parent_lot_id"/>
+                    <field name="product_id"/>
+                    <field name="sorting_date"/>
+                    <field name="sorter_id"/>
+                    <field name="parent_qty_total"/>
+                    <field name="qty_total_sorted"/>
+                    <field name="inventory_processed" widget="boolean_toggle"/>
+                    <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Sorting Report Form View -->
+        <record id="view_sorting_report_form" model="ir.ui.view">
+            <field name="name">custom.sorting.report.form</field>
+            <field name="model">custom.sorting.report</field>
+            <field name="arch" type="xml">
+                <form string="Sorting Report">
+                    <header>
+                        <button name="action_confirm" type="object" string="Confirm Sorting" 
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                        <button name="action_reset_to_draft" type="object" string="Reset to Draft" 
+                            invisible="state != 'confirmed'"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
+                    </header>
+                    <sheet>
+                        <field name="available_lot_ids" invisible="1"/>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        
+                        <!-- Basic Information -->
+                        <group>
+                            <group>
+                                <field name="parent_lot_id" readonly="state == 'confirmed'" 
+                                       options="{'no_create': True}"/>
+                                <field name="product_id" readonly="1"/>
+                                <field name="purchase_order_id" readonly="1"/>
+                                <field name="uom_id" readonly="1" groups="uom.group_uom"/>
+                            </group>
+                            <group>
+                                <field name="sorting_date" readonly="state == 'confirmed'"/>
+                                <field name="sorter_id" readonly="state == 'confirmed'"/>
+                                <field name="sorting_location_id" readonly="state == 'confirmed'"/>
+                            </group>
+                        </group>
+
+                        <!-- Quantity Information -->
+                        <separator string="Sorting Quantities"/>
+                        <group>
+                            <group string="Parent Lot">
+                                <field name="parent_qty_total" readonly="1"/>
+                            </group>
+                            <group string="Sorted Quantities">
+                                <field name="qty_grade_a" readonly="state == 'confirmed'"/>
+                                <field name="qty_grade_b" readonly="state == 'confirmed'"/>
+                                <field name="qty_grade_c" readonly="state == 'confirmed'"/>
+                                <field name="qty_total_sorted" readonly="1" 
+                                       decoration-success="qty_total_sorted == parent_qty_total"
+                                       decoration-warning="qty_total_sorted != parent_qty_total"/>
+                            </group>
+                        </group>
+
+                        <!-- Processing Status -->
+                        <group invisible="state == 'draft'">
+                            <field name="inventory_processed" readonly="1"/>
+                            <field name="child_lot_ids" readonly="1" widget="many2many_tags"/>
+                        </group>
+
+                        <!-- Notes -->
+                        <group>
+                            <field name="notes" placeholder="Sorting notes and observations..." 
+                                   readonly="state == 'confirmed'"/>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                        <field name="activity_ids" widget="mail_activity"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <!-- Sorting Report Action -->
+        <record id="action_sorting_report" model="ir.actions.act_window">
+            <field name="name">Sorting Reports</field>
+            <field name="res_model">custom.sorting.report</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create a new Sorting Report
+                </p>
+                <p>
+                    Sort parent lots into graded child lots before quality testing.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
