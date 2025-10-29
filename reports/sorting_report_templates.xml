@@ -8,6 +8,15 @@
                         <div class="page">
                             <!-- Header -->
                             <h2 class="mt-3" style="text-align: center;">Sorting Report: <span t-field="doc.name"/></h2>
+
+                            <!-- DEBUG: Show actual values -->
+                            <div class="alert alert-warning" role="alert" style="font-size: 10px;">
+                                <strong>DEBUG INFO:</strong> Parent Qty: <span t-esc="doc.parent_qty_total"/> | 
+                                Grade A: <span t-esc="doc.qty_grade_a"/> | 
+                                Grade B: <span t-esc="doc.qty_grade_b"/> | 
+                                Grade C: <span t-esc="doc.qty_grade_c"/>
+                            </div>
+                            
                             <div class="row mb-4">
                                 <div class="col-6">
                                     <strong>Parent Lot:</strong> <span t-field="doc.parent_lot_id.name"/><br/>

@@ -69,11 +69,20 @@ class CustomSortingReport(models.Model):
         required=True
     )
 
-    # Parent Lot Quantity Information
+    # FIXED: Store parent quantity at time of sorting (before any reductions), Make parent_qty_total non-stored to avoid database issues
     parent_qty_total = fields.Float(
         string='Parent Lot Total Quantity',
-        related='parent_lot_id.product_qty',
-        readonly=True
+        compute='_compute_parent_qty_total',
+        store=False,  # Changed from True to False
+        readonly=True,
+        help="Total quantity available in the parent lot"
+    )
+
+    # NEW: Store the original parent quantity for reporting
+    parent_qty_at_sorting = fields.Float(
+        string='Parent Quantity at Sorting',
+        readonly=True,
+        help="Original parent lot quantity when sorting was performed"
     )
 
     # Sorting Quantities
@@ -176,6 +185,55 @@ class CustomSortingReport(models.Model):
                 record.purchase_order_id = False
                 _logger.info("No purchase order found for lot")
 
+
+
+    # NEW: Compute method for parent_qty_total
+    @api.depends('parent_lot_id', 'parent_qty_at_sorting', 'state')
+    def _compute_parent_qty_total(self):
+        """Compute the total quantity of the parent lot"""
+        for record in self:
+            if not record.parent_lot_id:
+                record.parent_qty_total = 0.0
+                continue
+            
+            # If confirmed, use the stored quantity from sorting time
+            if record.state == 'confirmed' and record.parent_qty_at_sorting:
+                record.parent_qty_total = record.parent_qty_at_sorting
+            else:
+                # For draft records, use current lot quantity
+                record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
+
+
+
+    # @api.depends('parent_lot_id')
+    # def _compute_parent_qty_total(self):
+    #     """Compute the total quantity of the parent lot from stock quants"""
+    #     for record in self:
+    #         if not record.parent_lot_id:
+    #             record.parent_qty_total = 0.0
+    #             continue
+
+    #         # Use the lot's product_qty field as the primary source
+    #         record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
+    #         _logger.info(f"Parent lot {record.parent_lot_id.name} quantity: {record.parent_qty_total}")
+            
+            # Method 1: Get quantity from stock.quant (most accurate)
+            # stock_location = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
+            # if stock_location:
+            #     quants = self.env['stock.quant'].search([
+            #         ('lot_id', '=', record.parent_lot_id.id),
+            #         ('location_id', '=', stock_location.id),
+            #         ('quantity', '>', 0)
+            #     ])
+            #     total_qty = sum(quants.mapped('quantity'))
+            #     record.parent_qty_total = total_qty
+            #     _logger.info(f"Parent lot {record.parent_lot_id.name} quantity from quants: {total_qty}")
+            # else:
+            #     # Fallback: Use the lot's product_qty field
+            #     record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
+            #     _logger.info(f"Parent lot {record.parent_lot_id.name} quantity from lot: {record.parent_qty_total}")
+
+
     @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
     def _compute_total_sorted(self):
         for record in self:
@@ -203,17 +261,28 @@ class CustomSortingReport(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('custom.sorting.report') or _('New')
         return super().create(vals_list)
 
+    # FIXED: Temporarily disable constraint during module update
     @api.constrains('qty_grade_a', 'qty_grade_b', 'qty_grade_c', 'parent_qty_total')
     def _check_sorting_quantities(self):
+        # Skip validation during module installation/update
+        if self.env.context.get('module_uninstall') or self.env.context.get('install_mode'):
+            return
+        
         for record in self:
-            if record.qty_total_sorted > record.parent_qty_total:
+            # Compute parent quantity on the fly for validation
+            parent_qty = record.parent_lot_id.product_qty if record.parent_lot_id else 0.0
+            total_sorted = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            
+            if total_sorted > parent_qty:
                 raise ValidationError(_(
                     "Total sorted quantity (%.2f) cannot exceed parent lot quantity (%.2f)"
-                ) % (record.qty_total_sorted, record.parent_qty_total))
+                ) % (total_sorted, parent_qty))
 
     def action_confirm(self):
         """Confirm the sorting report and create child lots"""
         for record in self:
+            # IMPORTANT: Store the parent quantity BEFORE any processing
+            record.parent_qty_at_sorting = record.parent_lot_id.product_qty
             record._validate_sorting_data()
             record._create_child_lots()
             record.write({'state': 'confirmed'})
@@ -229,6 +298,12 @@ class CustomSortingReport(models.Model):
         
         if not self.parent_lot_id:
             raise UserError(_("Parent Lot is required."))
+
+        # Use current parent quantity for validation
+        parent_qty = self.parent_lot_id.product_qty or 0.0
+        
+        if parent_qty <= 0:
+            raise UserError(_("Parent lot has no available quantity."))
         
         if abs(self.qty_total_sorted - self.parent_qty_total) > 0.01:
             raise UserError(_(
@@ -274,7 +349,7 @@ class CustomSortingReport(models.Model):
                     'parent_lot_id': self.parent_lot_id.id
                 })
 
-                # Update inventory
+                # Update inventory  Only ADD inventory for child lots, don't reduce parent
                 self.env['stock.quant']._update_available_quantity(
                     graded_product,
                     stock_location,
@@ -283,12 +358,12 @@ class CustomSortingReport(models.Model):
                 )
 
                 # Reduce parent lot quantity
-                self.env['stock.quant']._update_available_quantity(
-                    self.product_id,
-                    stock_location,
-                    -qty,
-                    lot_id=self.parent_lot_id
-                )
+                # self.env['stock.quant']._update_available_quantity(
+                #     self.product_id,
+                #     stock_location,
+                #     -qty,
+                #     lot_id=self.parent_lot_id
+                # )
 
                 created_lots.append(child_lot_name)
 
@@ -296,7 +371,7 @@ class CustomSortingReport(models.Model):
         
         if created_lots:
             self.message_post(
-                body=_("Child lots created: %s") % ', '.join(created_lots)
+                body=_("Child lots created: %s (Parent lot quantity preserved)") % ', '.join(created_lots)
             )
 
         return True

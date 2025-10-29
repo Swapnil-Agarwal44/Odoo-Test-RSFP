@@ -34,7 +34,8 @@
                     <field name="product_id"/>
                     <field name="sorting_date"/>
                     <field name="sorter_id"/>
-                    <field name="parent_qty_total"/>
+                    <!-- REMOVED: parent_qty_total field that was causing database error -->
+                    <!-- <field name="parent_qty_total"/> -->
                     <field name="qty_total_sorted"/>
                     <field name="inventory_processed" widget="boolean_toggle"/>
                     <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/>
