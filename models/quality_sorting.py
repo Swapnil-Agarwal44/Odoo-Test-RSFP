@@ -1,5 +1,5 @@
-from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo import models, fields, api, _ # type: ignore
+from odoo.exceptions import UserError, ValidationError # type: ignore
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -203,37 +203,6 @@ class CustomSortingReport(models.Model):
                 # For draft records, use current lot quantity
                 record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
 
-
-
-    # @api.depends('parent_lot_id')
-    # def _compute_parent_qty_total(self):
-    #     """Compute the total quantity of the parent lot from stock quants"""
-    #     for record in self:
-    #         if not record.parent_lot_id:
-    #             record.parent_qty_total = 0.0
-    #             continue
-
-    #         # Use the lot's product_qty field as the primary source
-    #         record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
-    #         _logger.info(f"Parent lot {record.parent_lot_id.name} quantity: {record.parent_qty_total}")
-            
-            # Method 1: Get quantity from stock.quant (most accurate)
-            # stock_location = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
-            # if stock_location:
-            #     quants = self.env['stock.quant'].search([
-            #         ('lot_id', '=', record.parent_lot_id.id),
-            #         ('location_id', '=', stock_location.id),
-            #         ('quantity', '>', 0)
-            #     ])
-            #     total_qty = sum(quants.mapped('quantity'))
-            #     record.parent_qty_total = total_qty
-            #     _logger.info(f"Parent lot {record.parent_lot_id.name} quantity from quants: {total_qty}")
-            # else:
-            #     # Fallback: Use the lot's product_qty field
-            #     record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
-            #     _logger.info(f"Parent lot {record.parent_lot_id.name} quantity from lot: {record.parent_qty_total}")
-
-
     @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
     def _compute_total_sorted(self):
         for record in self:
@@ -357,6 +326,7 @@ class CustomSortingReport(models.Model):
                     lot_id=child_lot
                 )
 
+                # if want to convert the process in which the parent lot quantity also has to be reduced after sorting, just uncomment the below code. 
                 # Reduce parent lot quantity
                 # self.env['stock.quant']._update_available_quantity(
                 #     self.product_id,
