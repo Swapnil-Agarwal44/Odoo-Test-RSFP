@@ -38,17 +38,35 @@
                                     <tr t-if="doc.qty_grade_a > 0">
                                         <td><strong>Grade A</strong></td>
                                         <td class="text-right"><span t-field="doc.qty_grade_a"/></td>
-                                        <td class="text-right"><t t-esc="round((doc.qty_grade_a / doc.parent_qty_total) * 100, 1)"/>%</td>
+                                        <!-- FIXED: Add safety check for division by zero -->
+                                        <td class="text-right">
+                                            <t t-if="doc.parent_qty_total > 0">
+                                                <t t-esc="round((doc.qty_grade_a / doc.parent_qty_total) * 100, 1)"/>%
+                                            </t>
+                                            <t t-else="">0.0%</t>
+                                        </td>
                                     </tr>
                                     <tr t-if="doc.qty_grade_b > 0">
                                         <td><strong>Grade B</strong></td>
                                         <td class="text-right"><span t-field="doc.qty_grade_b"/></td>
-                                        <td class="text-right"><t t-esc="round((doc.qty_grade_b / doc.parent_qty_total) * 100, 1)"/>%</td>
+                                        <!-- FIXED: Add safety check for division by zero -->
+                                        <td class="text-right">
+                                            <t t-if="doc.parent_qty_total > 0">
+                                                <t t-esc="round((doc.qty_grade_b / doc.parent_qty_total) * 100, 1)"/>%
+                                            </t>
+                                            <t t-else="">0.0%</t>
+                                        </td>
                                     </tr>
                                     <tr t-if="doc.qty_grade_c > 0">
                                         <td><strong>Grade C</strong></td>
                                         <td class="text-right"><span t-field="doc.qty_grade_c"/></td>
-                                        <td class="text-right"><t t-esc="round((doc.qty_grade_c / doc.parent_qty_total) * 100, 1)"/>%</td>
+                                        <!-- FIXED: Add safety check for division by zero -->
+                                        <td class="text-right">
+                                            <t t-if="doc.parent_qty_total > 0">
+                                                <t t-esc="round((doc.qty_grade_c / doc.parent_qty_total) * 100, 1)"/>%
+                                            </t>
+                                            <t t-else="">0.0%</t>
+                                        </td>
                                     </tr>
                                     <tr style="border-top: 2px solid #000; font-weight: bold;">
                                         <td><strong>Total Sorted</strong></td>

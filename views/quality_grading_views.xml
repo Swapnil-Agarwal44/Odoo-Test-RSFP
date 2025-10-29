@@ -35,21 +35,6 @@
                   action="action_quality_grading_report" 
                   sequence="10"/>
 
-         <!-- FIXED: Correct action references -->
-        <menuitem id="menu_sorting_report" 
-                  name="Sorting" 
-                  parent="menu_quality_root" 
-                  action="action_sorting_report" 
-                  sequence="20"/>
-
-         <!-- NEW: Add Quality Reports submenu -->
-        <menuitem id="menu_quality_report" 
-                  name="Quality Reports" 
-                  parent="menu_quality_root" 
-                  action="action_quality_report" 
-                  sequence="30"/>
-
-
         <record id="view_quality_grading_tree" model="ir.ui.view">
             <field name="name">custom.quality.grading.tree</field>
             <field name="model">custom.quality.grading</field>

@@ -1,5 +1,5 @@
-from odoo import models, fields, api, _ # type: ignore
-from odoo.exceptions import UserError, ValidationError # type: ignore
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError, ValidationError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -25,19 +25,19 @@ class CustomSortingReport(models.Model):
         ('confirmed', 'Confirmed'),
     ], string='Status', default='draft', readonly=True, tracking=True)
 
-    # Basic Information
+    # FIXED: Simple Many2one field without complex domain
     parent_lot_id = fields.Many2one(
         'stock.lot',
         string='Parent Lot/Batch',
         required=True,
-        domain="[('id', 'in', available_lot_ids)]",
-        help="The main lot/batch to be sorted into grades"
+        help="Select the parent lot/batch to be sorted into grades"
     )
     
+    # FIXED: Compute method that finds purchase order from stock moves
     purchase_order_id = fields.Many2one(
         'purchase.order',
         string='Purchase Order',
-        related='parent_lot_id.purchase_order_id',
+        compute='_compute_purchase_order',
         store=True,
         readonly=True
     )
@@ -48,12 +48,6 @@ class CustomSortingReport(models.Model):
         related='parent_lot_id.product_id',
         store=True,
         readonly=True
-    )
-    
-    available_lot_ids = fields.Many2many(
-        'stock.lot',
-        compute='_compute_available_lots',
-        store=False
     )
     
     sorting_date = fields.Date(
@@ -128,6 +122,60 @@ class CustomSortingReport(models.Model):
 
     notes = fields.Text(string='Sorting Notes')
 
+    # FIXED: Enhanced compute method for purchase_order_id
+    @api.depends('parent_lot_id')
+    def _compute_purchase_order(self):
+        """Compute purchase order from parent lot's stock moves"""
+        for record in self:
+            if not record.parent_lot_id:
+                record.purchase_order_id = False
+                continue
+            
+            _logger.info(f"Computing purchase order for lot: {record.parent_lot_id.name}")
+            
+            # Method 1: Find through stock move lines (most reliable)
+            move_lines = self.env['stock.move.line'].search([
+                ('lot_id', '=', record.parent_lot_id.id),
+                ('state', '=', 'done'),
+                ('move_id.purchase_line_id', '!=', False)
+            ], limit=1)
+            
+            if move_lines and move_lines.move_id.purchase_line_id:
+                record.purchase_order_id = move_lines.move_id.purchase_line_id.order_id
+                _logger.info(f"Found PO via move lines: {record.purchase_order_id.name}")
+                continue
+            
+            # Method 2: Find through stock moves directly
+            moves = self.env['stock.move'].search([
+                ('move_line_ids.lot_id', '=', record.parent_lot_id.id),
+                ('state', '=', 'done'),
+                ('purchase_line_id', '!=', False)
+            ], limit=1)
+            
+            if moves and moves.purchase_line_id:
+                record.purchase_order_id = moves.purchase_line_id.order_id
+                _logger.info(f"Found PO via moves: {record.purchase_order_id.name}")
+                continue
+            
+            # Method 3: Search by product and date (fallback)
+            recent_pos = self.env['purchase.order'].search([
+                ('order_line.product_id', '=', record.parent_lot_id.product_id.id),
+                ('state', 'in', ['purchase', 'done']),
+                ('date_order', '<=', fields.Datetime.now())
+            ], order='date_order desc', limit=5)
+            
+            for po in recent_pos:
+                # Check if this PO has any pickings with our lot
+                po_pickings = po.picking_ids.filtered(lambda p: p.state == 'done')
+                po_lots = po_pickings.mapped('move_line_ids.lot_id')
+                if record.parent_lot_id in po_lots:
+                    record.purchase_order_id = po
+                    _logger.info(f"Found PO via fallback method: {po.name}")
+                    break
+            else:
+                record.purchase_order_id = False
+                _logger.info("No purchase order found for lot")
+
     @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
     def _compute_total_sorted(self):
         for record in self:
@@ -147,21 +195,6 @@ class CustomSortingReport(models.Model):
             ])
             
             record.child_lot_ids = [(6, 0, child_lots.ids)]
-
-    @api.depends('product_id')
-    def _compute_available_lots(self):
-        for record in self:
-            if not record.product_id:
-                record.available_lot_ids = [(6, 0, [])]
-                continue
-            
-            # Get lots for this product that have available quantity
-            lots = self.env['stock.lot'].search([
-                ('product_id', '=', record.product_id.id),
-                ('product_qty', '>', 0)
-            ])
-            
-            record.available_lot_ids = [(6, 0, lots.ids)]
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -230,6 +263,7 @@ class CustomSortingReport(models.Model):
                 # Get graded product
                 graded_product = self._get_graded_product(grade_letter)
                 if not graded_product:
+                    _logger.warning(f"No graded product found for grade {grade_letter}")
                     continue
 
                 # Create child lot
@@ -269,13 +303,39 @@ class CustomSortingReport(models.Model):
 
     def _get_graded_product(self, grade_letter):
         """Get the graded product for a specific grade"""
+        if not self.product_id:
+            return False
+            
         base_name = self.product_id.name.replace(' - Bulk', '').replace('Bulk', '')
         
+        # Try different search patterns
+        search_patterns = [
+            f'{base_name} - Grade {grade_letter}',
+            f'{base_name} Grade {grade_letter}',
+            f'Grade {grade_letter} {base_name}',
+        ]
+        
+        for pattern in search_patterns:
+            graded_product = self.env['product.product'].search([
+                ('name', 'ilike', pattern),
+                ('tracking', '=', 'lot')
+            ], limit=1)
+            
+            if graded_product:
+                _logger.info(f"Found graded product: {graded_product.name} for grade {grade_letter}")
+                return graded_product
+        
+        # Fallback: search more broadly
         graded_product = self.env['product.product'].search([
             ('name', 'ilike', base_name),
             ('name', 'ilike', f'grade {grade_letter}'),
             ('tracking', '=', 'lot')
         ], limit=1)
+        
+        if graded_product:
+            _logger.info(f"Found graded product (fallback): {graded_product.name}")
+        else:
+            _logger.warning(f"No graded product found for base name: {base_name}, grade: {grade_letter}")
         
         return graded_product
 

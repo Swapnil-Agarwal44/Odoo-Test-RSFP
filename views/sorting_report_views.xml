@@ -1,6 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!-- Sorting Report Action -->
+        <record id="action_sorting_report" model="ir.actions.act_window">
+            <field name="name">Sorting Reports</field>
+            <field name="res_model">custom.sorting.report</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create a new Sorting Report
+                </p>
+                <p>
+                    Sort parent lots into graded child lots before quality testing.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Item for Sorting -->
+        <menuitem id="menu_sorting_report" 
+                  name="Sorting" 
+                  parent="custom_rsfp_module.menu_quality_root" 
+                  action="action_sorting_report" 
+                  sequence="20"/>
+
         <!-- Sorting Report Tree View -->
         <record id="view_sorting_report_tree" model="ir.ui.view">
             <field name="name">custom.sorting.report.tree</field>
@@ -34,7 +56,6 @@
                         <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
                     </header>
                     <sheet>
-                        <field name="available_lot_ids" invisible="1"/>
                         <div class="oe_title">
                             <h1><field name="name" readonly="1"/></h1>
                         </div>
@@ -42,6 +63,7 @@
                         <!-- Basic Information -->
                         <group>
                             <group>
+                                <!-- FIXED: Removed domain and available_lot_ids field -->
                                 <field name="parent_lot_id" readonly="state == 'confirmed'" 
                                        options="{'no_create': True}"/>
                                 <field name="product_id" readonly="1"/>
@@ -89,21 +111,6 @@
                         <field name="message_ids" widget="mail_thread"/>
                     </div>
                 </form>
-            </field>
-        </record>
-
-        <!-- Sorting Report Action -->
-        <record id="action_sorting_report" model="ir.actions.act_window">
-            <field name="name">Sorting Reports</field>
-            <field name="res_model">custom.sorting.report</field>
-            <field name="view_mode">tree,form</field>
-            <field name="help" type="html">
-                <p class="o_view_nocontent_smiling_face">
-                    Create a new Sorting Report
-                </p>
-                <p>
-                    Sort parent lots into graded child lots before quality testing.
-                </p>
             </field>
         </record>
     </data>
