@@ -10,6 +10,7 @@
         'stock',
         'product',
         'barcodes',
+        'web',
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -48,6 +49,11 @@
 
 
     ],
+    'assets': {
+        'web.assets_backend': [
+            'custom_rsfp_module/static/src/js/stock_move_line.js',
+        ],
+    },
     
     'installable': True,
     'application': False,

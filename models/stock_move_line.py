@@ -37,6 +37,46 @@ class StockMoveLine(models.Model):
         
         _logger.info(f"Final result: {res}")
         return res
+    
+
+    # NEW: Override write method to handle existing records
+    def write(self, vals):
+        """Override write to set lot_name for existing records that don't have it"""
+        for record in self:
+            # Check if this is an existing record without lot_name but with product_id
+            if (not record.lot_name and 
+                record.product_id and 
+                record.product_id.tracking in ['lot', 'serial'] and 
+                record.qty_done == 0 and  # Not yet processed
+                not vals.get('lot_name')):  # Not setting lot_name in this write
+                
+                _logger.info(f"Auto-generating lot_name for existing record: {record.id}")
+                custom_lot_name = self._generate_lot_name_for_product(record.product_id.id)
+                if custom_lot_name:
+                    vals['lot_name'] = custom_lot_name
+                    _logger.info(f"Auto-set lot_name to: {custom_lot_name}")
+        
+        return super(StockMoveLine, self).write(vals)
+
+    @api.model
+    def create(self, vals):
+        """Override create to ensure lot_name is set for new records"""
+        _logger.info("=== STOCK MOVE LINE CREATE CALLED ===")
+        _logger.info(f"Values: {vals}")
+        
+        # If lot_name not provided but product_id is available
+        if (not vals.get('lot_name') and 
+            vals.get('product_id')):
+            
+            product = self.env['product.product'].browse(vals['product_id'])
+            if product.tracking in ['lot', 'serial']:
+                custom_lot_name = self._generate_lot_name_for_product(vals['product_id'])
+                if custom_lot_name:
+                    vals['lot_name'] = custom_lot_name
+                    _logger.info(f"Set lot_name in create: {custom_lot_name}")
+        
+        return super(StockMoveLine, self).create(vals)
+
 
     @api.model
     def _generate_lot_name_for_product(self, product_id):
@@ -81,3 +121,18 @@ class StockMoveLine(models.Model):
                 if generated_name:
                     self.lot_name = generated_name
                     _logger.info(f"Set lot_name to: {self.lot_name}")
+
+
+    # NEW: Method to fix existing records without lot_name
+    def action_generate_missing_lot_names(self):
+        """Action to generate lot names for records that are missing them"""
+        for record in self:
+            if (not record.lot_name and 
+                record.product_id and 
+                record.product_id.tracking in ['lot', 'serial'] and
+                record.state in ['draft', 'waiting', 'confirmed', 'assigned']):
+                
+                custom_lot_name = record._generate_lot_name_for_product(record.product_id.id)
+                if custom_lot_name:
+                    record.lot_name = custom_lot_name
+                    _logger.info(f"Fixed lot_name for record {record.id}: {custom_lot_name}")

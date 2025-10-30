@@ -23,7 +23,7 @@ class StockLot(models.Model):
     @api.model
     def create(self, vals):
         """Override create to inject custom lot name if not provided"""
-        _logger.info("=== CREATE METHOD CALLED ===")
+        _logger.info("=== LOT CREATE METHOD CALLED ===")
         _logger.info(f"Values: {vals}")
         _logger.info(f"Context: {self._context}")
         
@@ -70,7 +70,7 @@ class StockLot(models.Model):
     @api.model
     def default_get(self, fields_list):
         """Override to provide custom default lot name"""
-        _logger.info("=== DEFAULT_GET CALLED ===")
+        _logger.info("=== LOT DEFAULT_GET CALLED ===")
         _logger.info(f"Context: {self._context}")
         
         res = super(StockLot, self).default_get(fields_list)
@@ -131,7 +131,7 @@ class StockLot(models.Model):
     @api.onchange('product_id')
     def _onchange_product_id_generate_lot(self):
         """Generate lot name when product is selected"""
-        _logger.info(f"=== ONCHANGE TRIGGERED === Product: {self.product_id.name if self.product_id else 'None'}")
+        _logger.info(f"=== LOT ONCHANGE TRIGGERED === Product: {self.product_id.name if self.product_id else 'None'}")
         _logger.info(f"Current name: {self.name}")
         
         if self.product_id:
