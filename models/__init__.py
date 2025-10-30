@@ -6,5 +6,4 @@ from . import purchase_order
 from . import quality_grading
 from . import quality_sorting
 from . import quality_report
-from . import report_wizard
 from . import rsfp_enquiry_id
