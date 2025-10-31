@@ -9,7 +9,7 @@
         'mail',
         'stock',
         'product',
-        'barcodes',
+        # 'barcodes',
         'web',
     ],
     'data': [
@@ -42,9 +42,10 @@
 
         'views/quality_report_action.xml',  # NEW: Add this
 
-        'reports/sorting_report_templates.xml',  # NEW: Add this
+        'reports/sorting_report_templates.xml',  # ← ADD THIS LINE
+
+        'reports/quality_report_templates.xml',  # ← ADD THIS LINE
         
-        'reports/quality_report_templates.xml',  # NEW: Add this
 
 
 

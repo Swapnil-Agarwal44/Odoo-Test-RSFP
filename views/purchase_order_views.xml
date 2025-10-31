@@ -25,4 +25,19 @@
             </xpath>
         </field>
     </record>
+
+    <!-- NEW: Extend Purchase Order Line Tree View to show Assigned Lot -->
+    <record id="view_purchase_order_line_tree_lot_assigned" model="ir.ui.view">
+        <field name="name">purchase.order.line.tree.lot.assigned</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Add the lot_assigned column to the order line tree -->
+            <xpath expr="//field[@name='order_line']//tree//field[@name='price_subtotal']" position="after">
+                <field name="lot_assigned" optional="show" readonly="1" 
+                       string="Assigned Lot" 
+                       help="Parent lot assigned during receipt validation"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
