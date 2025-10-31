@@ -36,8 +36,8 @@
                     <field name="testing_date"/>
                     <field name="tester_id"/>
                     <field name="lot_qty_total"/>
-                    <field name="rate_per_kg"/>
-                    <field name="total_amount"/>
+                    <!-- <field name="rate_per_kg"/> -->
+                    <!-- <field name="total_amount"/> -->
                     <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/>
                 </tree>
             </field>
@@ -80,13 +80,13 @@
                         </group>
 
                         <!-- Valuation -->
-                        <separator string="Valuation"/>
+                        <!-- <separator string="Valuation"/>
                         <group>
                             <group>
                                 <field name="rate_per_kg" readonly="state == 'confirmed'"/>
                                 <field name="total_amount" readonly="1"/>
                             </group>
-                        </group>
+                        </group> -->
 
                         <notebook>
                             <!-- Quality Testing Tab -->

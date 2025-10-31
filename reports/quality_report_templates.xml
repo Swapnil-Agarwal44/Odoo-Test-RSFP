@@ -72,7 +72,7 @@
                             </div>
 
                             <!-- Valuation -->
-                            <h4>Valuation</h4>
+                            <!-- <h4>Valuation</h4>
                             <table class="table table-sm table-bordered" style="width: 50%;">
                                 <tr>
                                     <td><strong>Rate per Kg:</strong></td>
@@ -86,7 +86,7 @@
                                     <td><strong>Total Amount:</strong></td>
                                     <td class="text-right"><strong><span t-field="doc.total_amount"/></strong></td>
                                 </tr>
-                            </table>
+                            </table> -->
 
                             <!-- Notes -->
                             <t t-if="doc.notes">
@@ -149,9 +149,9 @@
                                                 Qty: <span t-field="doc.lot_qty_total"/> kg
                                             </div>
                                             
-                                            <div style="font-size: 14px; font-weight: bold; margin-bottom: 15px;">
+                                            <!-- <div style="font-size: 14px; font-weight: bold; margin-bottom: 15px;">
                                                 Rate: <span t-field="doc.rate_per_kg"/> per kg
-                                            </div>
+                                            </div> -->
                                             
                                             <div style="font-size: 12px; color: #666;">
                                                 Tested: <span t-field="doc.testing_date"/> | Quality Report: <span t-field="doc.name"/>
