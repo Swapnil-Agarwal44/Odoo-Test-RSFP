@@ -338,7 +338,8 @@ class CustomQualityGrading(models.Model):
         """Assigns the sequence number upon creation."""
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.grading') or _('New')
+                # Use the new daily sequence
+                vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.grading.daily') or _('New')
         return super().create(vals_list)
     
     # ... (existing code and imports) ...

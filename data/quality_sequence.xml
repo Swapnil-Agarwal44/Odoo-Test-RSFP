@@ -14,28 +14,32 @@
         <!-- Existing Quality Grading Report Sequence -->
         <record id="seq_custom_quality_grading" model="ir.sequence">
             <field name="name">Quality Grading Report Sequence</field>
-            <field name="code">custom.quality.grading</field>
+            <field name="code">custom.quality.grading.daily</field>
             <field name="prefix">QR-</field>
             <field name="padding">4</field>
             <field name="company_id" eval="False"/>
         </record>
 
-        <!-- NEW: Sorting Report Sequence -->
+        <!-- Sorting Report Daily Sequence -->
         <record id="seq_custom_sorting_report" model="ir.sequence">
-            <field name="name">Sorting Report Sequence</field>
-            <field name="code">custom.sorting.report</field>
-            <field name="prefix">SORT-</field>
+            <field name="name">Sorting Report Daily Sequence</field>
+            <field name="code">custom.sorting.report.daily</field>
+            <field name="prefix"></field>
             <field name="padding">4</field>
-            <field name="company_id" eval="False"/>
+            <field name="number_increment">1</field>
+            <field name="use_date_range">False</field>
+            <field name="number_next">1</field>
         </record>
 
-        <!-- NEW: Quality Report Sequence -->
+        <!-- Quality Report Daily Sequence -->
         <record id="seq_custom_quality_report" model="ir.sequence">
-            <field name="name">Quality Report Sequence</field>
-            <field name="code">custom.quality.report</field>
-            <field name="prefix">QT-</field>
+            <field name="name">Quality Report Daily Sequence</field>
+            <field name="code">custom.quality.report.daily</field>
+            <field name="prefix"></field>
             <field name="padding">4</field>
-            <field name="company_id" eval="False"/>
+            <field name="number_increment">1</field>
+            <field name="use_date_range">False</field>
+            <field name="number_next">1</field>
         </record>
     </data>
 </odoo>

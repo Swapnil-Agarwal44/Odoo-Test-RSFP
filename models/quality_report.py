@@ -184,7 +184,8 @@ class CustomQualityReport(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.report') or _('New')
+                # Use the new daily sequence
+                vals['name'] = self.env['ir.sequence'].next_by_code('custom.quality.report.daily') or _('New')
         return super().create(vals_list)
 
     def action_confirm(self):

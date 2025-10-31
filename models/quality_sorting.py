@@ -227,7 +227,8 @@ class CustomSortingReport(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('custom.sorting.report') or _('New')
+                # Use the new daily sequence
+                vals['name'] = self.env['ir.sequence'].next_by_code('custom.sorting.report.daily') or _('New')
         return super().create(vals_list)
 
     # FIXED: Temporarily disable constraint during module update
