@@ -107,8 +107,8 @@ class CustomQualityReport(models.Model):
 
     # Quality Characteristics (Boolean)
     uniform_color = fields.Boolean(string='Uniform Color', default=True)
-    visible_mold = fields.Boolean(string='Visible Mold', default=False)
-    physical_damage = fields.Boolean(string='Physical Damage', default=False)
+    visible_mold_free = fields.Boolean(string='Visible Mold Free', default=True)
+    physical_damage_free = fields.Boolean(string='Physical Damage Free', default=True)
     pest_free = fields.Boolean(string='Pest Free', default=True)
 
     # Quality Characteristics (Selections)

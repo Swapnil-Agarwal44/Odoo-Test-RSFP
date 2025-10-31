@@ -35,12 +35,12 @@
                                             <td><t t-esc="doc.uniform_color and '✓ Yes' or '✗ No'"/></td>
                                         </tr>
                                         <tr>
-                                            <td>Visible Mold:</td>
-                                            <td><t t-esc="doc.visible_mold and '✗ Yes' or '✓ No'"/></td>
+                                            <td>Visible Mold Free:</td>
+                                            <td><t t-esc="doc.visible_mold_free and '✓ Yes' or '✗ No'"/></td>
                                         </tr>
                                         <tr>
-                                            <td>Physical Damage:</td>
-                                            <td><t t-esc="doc.physical_damage and '✗ Yes' or '✓ No'"/></td>
+                                            <td>Physical Damage Free:</td>
+                                            <td><t t-esc="doc.physical_damage_free and '✓ Yes' or '✗ No'"/></td>
                                         </tr>
                                         <tr>
                                             <td>Pest Free:</td>

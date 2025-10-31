@@ -94,8 +94,8 @@
                                 <group>
                                     <group string="Physical Characteristics">
                                         <field name="uniform_color" readonly="state == 'confirmed'"/>
-                                        <field name="visible_mold" readonly="state == 'confirmed'"/>
-                                        <field name="physical_damage" readonly="state == 'confirmed'"/>
+                                        <field name="visible_mold_free" readonly="state == 'confirmed'"/>
+                                        <field name="physical_damage_free" readonly="state == 'confirmed'"/>
                                         <field name="pest_free" readonly="state == 'confirmed'"/>
                                     </group>
                                     <group string="Quality Attributes">
