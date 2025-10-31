@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- This XML file defines the user interface components for the Quality Grading module:
-     1. Menu Structure: Creates a "Quality" menu under Purchases with a submenu for "Quality Grading Reports"
+     1. Menu Structure: Creates a "Quality" menu under Inventory with submenus"
      2. Action Window: Defines how the quality grading records will be displayed (tree/form views)
      3. Tree View: Lists quality grading records in a table format showing key information
      4. Form View: Detailed view for creating/editing quality grading reports with:
@@ -15,7 +15,7 @@
     <data>
         <menuitem id="menu_quality_root" 
                   name="Quality" 
-                  parent="purchase.menu_purchase_root" 
+                  parent="stock.menu_stock_root" 
                   sequence="25"/>
 
         <record id="action_quality_grading_report" model="ir.actions.act_window">
