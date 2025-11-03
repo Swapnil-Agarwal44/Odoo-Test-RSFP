@@ -94,13 +94,44 @@
                             </group>
                         </group>
 
-                        <!-- Processing Status -->
+                        <!-- UPDATED: Processing Status with selectable child lot names -->
                         <group invisible="state == 'draft'">
                             <field name="inventory_processed" readonly="1"/>
-                            <field name="child_lot_ids" readonly="1" widget="many2many_tags"/>
+                            
+                            <!-- Display child lots with clickable buttons -->
+                            <div colspan="2" invisible="not inventory_processed">
+                                <div class="o_form_label">Created Child Lots</div>
+                                
+                                <!-- Show child lots as clickable buttons -->
+                                <div class="o_field_many2many_tags" style="border: 1px solid #ced4da; padding: 8px; border-radius: 4px; background-color: #f8f9fa;">
+                                    <field name="child_lot_ids" widget="many2many_tags" 
+                                           options="{'no_create': True, 'no_edit': True}" 
+                                           readonly="1"/>
+                                </div>
+                                
+                                <!-- Buttons for interaction -->
+                                <div class="mt-2">
+                                    <button name="action_view_all_child_lots" 
+                                            type="object" 
+                                            string="View All Child Lots"
+                                            class="btn btn-primary btn-sm"
+                                            invisible="not child_lot_ids"/>
+                                </div>
+                                
+                                <!-- Copyable text area -->
+                                <div class="alert alert-info mt-2" invisible="not child_lot_ids">
+                                    <small><strong>Copy child lot names:</strong></small>
+                                    <div class="mt-1" style="font-family: monospace; background-color: white; padding: 8px; border-radius: 4px; border: 1px solid #dee2e6; user-select: text; cursor: text;">
+                                        <field name="child_lot_names" readonly="1" nolabel="1"/>
+                                    </div>
+                                    <small class="text-muted mt-1">💡 Click in the box above and press Ctrl+A to select all, then Ctrl+C to copy</small>
+                                </div>
+                            </div>
+                            
+                            <div colspan="2" invisible="inventory_processed">
+                                <span class="text-muted">No child lots created yet</span>
+                            </div>
                         </group>
-
-                        <!-- Notes -->
                         <group>
                             <field name="notes" placeholder="Sorting notes and observations..." 
                                    readonly="state == 'confirmed'"/>

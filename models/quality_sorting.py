@@ -129,6 +129,13 @@ class CustomSortingReport(models.Model):
         string='Created Child Lots'
     )
 
+    # Created Child Lots (for display as copyable text)
+    child_lot_names = fields.Char(
+    string='Child Lot Names',
+    compute='_compute_child_lot_names',
+    help="Comma-separated child lot names for easy copying"
+)
+
     notes = fields.Text(string='Sorting Notes')
 
     # FIXED: Enhanced compute method for purchase_order_id
@@ -396,3 +403,52 @@ class CustomSortingReport(models.Model):
         for record in self:
             record.write({'state': 'draft'})
         return True
+    
+    def action_view_child_lot(self):
+        """Action to view a specific child lot"""
+        lot_id = self.env.context.get('lot_id')
+        if not lot_id:
+            raise UserError(_("No lot specified"))
+        
+        lot = self.env['stock.lot'].browse(lot_id)
+        if not lot.exists():
+            raise UserError(_("Lot not found"))
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Child Lot: {lot.name}',
+            'res_model': 'stock.lot',
+            'res_id': lot.id,
+            'view_mode': 'form',
+            'target': 'new',  # Opens in popup
+            'context': {'create': False, 'edit': False}  # Read-only
+        }
+
+    def action_view_all_child_lots(self):
+        """Action to view all child lots in list view"""
+        self.ensure_one()
+        
+        if not self.child_lot_ids:
+            raise UserError(_("No child lots have been created yet."))
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Child Lots from {self.name}',
+            'res_model': 'stock.lot',
+            'domain': [('id', 'in', self.child_lot_ids.ids)],
+            'view_mode': 'tree,form',
+            'target': 'current',
+            'context': {
+                'search_default_parent_lot': self.parent_lot_id.name,
+                'create': False
+            }
+        }
+    
+    @api.depends('child_lot_ids')
+    def _compute_child_lot_names(self):
+        """Compute comma-separated child lot names for copying"""
+        for record in self:
+            if record.child_lot_ids:
+                record.child_lot_names = ', '.join(record.child_lot_ids.mapped('name'))
+            else:
+                record.child_lot_names = ''
