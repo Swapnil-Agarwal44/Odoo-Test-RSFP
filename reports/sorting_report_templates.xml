@@ -130,49 +130,65 @@
                             </div>
 
                             <!-- Child Lot Labels (if confirmed) -->
+                            <!-- FIXED: Child Lot Labels with proper page break logic -->
                             <t t-if="doc.state == 'confirmed' and doc.child_lot_ids">
+                                <!-- Always start child lot labels on a new page -->
                                 <div style="page-break-before: always !important;">
                                     <h2 class="mt-3" style="text-align: center;">Child Lot Barcode Labels</h2>
                                     <p class="text-center mb-4">Generated from Sorting Report: <span t-field="doc.name"/></p>
-                                    
-                                    <!-- FIXED: Using the same logic as quality report images - 2 labels per row -->
-                                    <t t-foreach="range(0, len(doc.child_lot_ids), 2)" t-as="i">
-                                        <div class="row">
-                                            <t t-foreach="doc.child_lot_ids[i:i+2]" t-as="lot">
-                                                <div class="col-6 mb-4">
-                                                    <div style="border: 2px solid #000; padding: 20px; text-align: center; min-height: 200px;">
-                                                        <!-- Barcode -->
-                                                        <div style="margin-bottom: 10px;">
-                                                            <img t-att-src="'/report/barcode/Code128/%s?width=400&amp;height=100' % lot.name" 
-                                                            style="max-width: 100%; height: auto;" 
-                                                            alt="Barcode"/>
-                                                        </div>
-                                                        
-                                                        <!-- Lot Information -->
-                                                        <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">
-                                                            <span t-field="lot.name"/>
-                                                        </div>
-                                                        
-                                                        <div style="font-size: 12px; margin-bottom: 5px;">
-                                                            Product: <span t-field="lot.product_id.name"/>
-                                                        </div>
-                                                        
-                                                        <div style="font-size: 12px; margin-bottom: 5px;">
-                                                            Parent Lot: <span t-field="lot.ref"/>
-                                                        </div>
-                                                        
-                                                        <div style="font-size: 12px; font-weight: bold;">
-                                                            Qty: <span t-field="lot.product_qty"/> kg
-                                                        </div>
-                                                        
-                                                        <div style="font-size: 10px; color: #666; margin-top: 10px;">
-                                                            Sorted: <span t-field="doc.sorting_date"/>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </t>
-                                        </div>
+                                </div>
+                                
+                                <!-- FIXED: Each child lot on its own page to prevent splitting -->
+                                <t t-foreach="doc.child_lot_ids" t-as="child_lot">
+                                    <!-- Force page break before each label (except first one) -->
+                                    <t t-if="not child_lot_first">
+                                        <div style="page-break-before: always !important;"></div>
                                     </t>
+                                    
+                                    <!-- Each label gets its own page to prevent splitting -->
+                                    <div class="page" style="page-break-inside: avoid !important;">
+                                        <div class="row justify-content-center">
+                                            <div class="col-8">
+                                                <div style="border: 2px solid #000; padding: 30px; text-align: center; min-height: 250px; margin-top: 100px;">
+                                                    
+                                                    <!-- Barcode -->
+                                                    <div style="margin-bottom: 15px;">
+                                                        <img t-att-src="'/report/barcode/Code128/%s?width=500&amp;height=120' % child_lot.name" 
+                                                             style="max-width: 100%; height: auto;" 
+                                                             alt="Barcode"/>
+                                                    </div>
+                                                    
+                                                    <!-- Child Lot Information -->
+                                                    <div style="font-weight: bold; font-size: 20px; margin-bottom: 10px;">
+                                                        <span t-field="child_lot.name"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 14px; margin-bottom: 8px;">
+                                                        Product: <span t-field="child_lot.product_id.name"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 14px; margin-bottom: 8px;">
+                                                        Parent Lot: <span t-field="child_lot.parent_lot_id.name"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                                                        Qty: <span t-field="child_lot.product_qty"/> 
+                                                        <span t-field="child_lot.product_uom_id.name"/>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 12px; color: #666;">
+                                                        Sorted: <span t-field="doc.sorting_date"/> | 
+                                                        Sorting Report: <span t-field="doc.name"/>
+                                                    </div>
+                                                    
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Add page break after each label except the last one -->
+                                        <t t-if="not child_lot_last">
+                                            <div style="page-break-after: always;"></div>
+                                        </t>
                                     
                                     <!-- Instructions -->
                                     <div class="mt-4" style="border-top: 1px solid #ccc; padding-top: 15px;">
@@ -181,7 +197,7 @@
                                             Attach each label to the corresponding graded product container.
                                         </p>
                                     </div>
-                                </div>
+                                </t>
                             </t>
                         </div>
                     </t>
