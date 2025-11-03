@@ -152,3 +152,65 @@ class StockLot(models.Model):
                 if generated_name:
                     self.name = generated_name
                     _logger.info(f"Name updated to: {self.name}")
+
+    def _get_purchase_order_info(self):
+        """Get purchase order information for parent lots"""
+        self.ensure_one()
+        
+        # Search for purchase order through stock moves  
+        move_lines = self.env['stock.move.line'].search([
+            ('lot_id', '=', self.id),
+            ('state', '=', 'done'),
+            ('move_id.purchase_line_id', '!=', False)
+        ], limit=1)
+        
+        if move_lines and move_lines.move_id.purchase_line_id:
+            po_line = move_lines.move_id.purchase_line_id
+            po = po_line.order_id
+            
+            # Get received date from picking
+            received_date = 'N/A'
+            if move_lines.picking_id and move_lines.picking_id.date_done:
+                received_date = move_lines.picking_id.date_done.strftime('%d/%m/%Y')
+            
+            return {
+                'po_number': po.name,
+                'vendor': po.partner_id.name,
+                'order_date': po.date_order.strftime('%d/%m/%Y') if po.date_order else 'N/A',
+                'received_date': received_date,
+                'original_qty': po_line.product_qty,
+                'uom': po_line.product_uom.name,
+            }
+        return {}
+    
+    def _get_processing_info(self):
+        """Get processing information for child lots"""
+        self.ensure_one()
+        
+        if not self.parent_lot_id:
+            return {}
+        
+        info = {
+            'sorted_date': 'N/A',
+            'tested_date': 'N/A'
+        }
+        
+        # Get sorting information
+        sorting_report = self.env['custom.sorting.report'].search([
+            ('parent_lot_id', '=', self.parent_lot_id.id),
+            ('state', '=', 'confirmed')
+        ], limit=1)
+        
+        if sorting_report:
+            info['sorted_date'] = sorting_report.sorting_date.strftime('%d/%m/%Y') if sorting_report.sorting_date else 'N/A'
+        
+        # Get quality testing information
+        quality_report = self.env['custom.quality.report'].search([
+            ('child_lot_id', '=', self.id),
+            ('state', '=', 'confirmed')
+        ], limit=1)
+        
+        if quality_report:
+            info['tested_date'] = quality_report.testing_date.strftime('%d/%m/%Y') if quality_report.testing_date else 'N/A'
+        
+        return info

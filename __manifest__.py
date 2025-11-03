@@ -9,7 +9,7 @@
         'mail',
         'stock',
         'product',
-        # 'barcodes',
+        'barcodes',
         'web',
     ],
     'data': [
@@ -46,7 +46,7 @@
 
         'reports/quality_report_templates.xml',  # ← ADD THIS LINE
         
-
+        'reports/lot_label_templates.xml',
 
 
     ],
