@@ -26,49 +26,47 @@
 
                             <!-- Quality Characteristics -->
                             <h4>Quality Test Results</h4>
-                            <div class="row">
-                                <div class="col-6">
-                                    <h5>Physical Characteristics</h5>
-                                    <table class="table table-sm table-condensed">
-                                        <tr>
-                                            <td style="width: 70%;">Uniform Color:</td>
-                                            <td><t t-esc="doc.uniform_color and '✓ Yes' or '✗ No'"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Visible Mold Free:</td>
-                                            <td><t t-esc="doc.visible_mold_free and '✓ Yes' or '✗ No'"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Physical Damage Free:</td>
-                                            <td><t t-esc="doc.physical_damage_free and '✓ Yes' or '✗ No'"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Pest Free:</td>
-                                            <td><t t-esc="doc.pest_free and '✓ Yes' or '✗ No'"/></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div class="col-6">
-                                    <h5>Quality Attributes</h5>
-                                    <table class="table table-sm table-condensed">
-                                        <tr>
-                                            <td style="width: 50%;">Freshness:</td>
-                                            <td><span t-field="doc.freshness"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Texture:</td>
-                                            <td><span t-field="doc.texture"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Aroma:</td>
-                                            <td><span t-field="doc.aroma"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Moisture (%):</td>
-                                            <td><span t-field="doc.moisture"/>%</td>
-                                        </tr>
-                                    </table>
-                                </div>
+                            <div style="margin-bottom: 25px;"> <h5>Physical Characteristics</h5>
+                                <table class="table table-sm table-condensed">
+                                    <tr>
+                                        <td style="width: 70%;">Uniform Color:</td>
+                                        <td><t t-esc="doc.uniform_color and '✓ Yes' or '✗ No'"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Visible Mold Free:</td>
+                                        <td><t t-esc="doc.visible_mold_free and '✓ Yes' or '✗ No'"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Physical Damage Free:</td>
+                                        <td><t t-esc="doc.physical_damage_free and '✓ Yes' or '✗ No'"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pest Free:</td>
+                                        <td><t t-esc="doc.pest_free and '✓ Yes' or '✗ No'"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div>
+                                <h5>Quality Attributes</h5>
+                                <table class="table table-sm table-condensed">
+                                    <tr>
+                                        <td style="width: 50%;">Freshness:</td>
+                                        <td><span t-field="doc.freshness"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Texture:</td>
+                                        <td><span t-field="doc.texture"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Aroma:</td>
+                                        <td><span t-field="doc.aroma"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Moisture (%):</td>
+                                        <td><span t-field="doc.moisture"/>%</td>
+                                    </tr>
+                                </table>
                             </div>
 
                             <!-- Valuation -->
