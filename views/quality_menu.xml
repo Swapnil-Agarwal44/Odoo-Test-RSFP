@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Main Quality Menu under Inventory -->
+        <menuitem id="menu_quality_root" 
+                  name="Quality" 
+                  parent="stock.menu_stock_root" 
+                  sequence="25"/>
+    </data>
+</odoo>

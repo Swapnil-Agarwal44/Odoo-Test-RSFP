@@ -14,16 +14,13 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        'data/quality_sequence.xml',
-        # Ensure this file name matches what is on your disk (view vs views)
-        'views/quality_grading_views.xml', 
-        # Rename 'views/report_action.xml' to the standard 'reports/...' path 
-        # for better organization, or leave as is if it's already working.
-        'views/report_action.xml', 
         
-        # The commented out report template reference is CORRECTLY OMITTED from 'data'.
+        'data/quality_sequence.xml',
+
+        'views/quality_menu.xml',
 
         'reports/custom_quality_report_templates.xml',
+
         'views/purchase_order_views.xml', 
 
         'views/product_template_views.xml',

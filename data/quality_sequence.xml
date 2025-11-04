@@ -11,14 +11,6 @@
 
 <odoo noupdate="1">
     <data noupdate="1">
-        <!-- Existing Quality Grading Report Sequence -->
-        <record id="seq_custom_quality_grading" model="ir.sequence">
-            <field name="name">Quality Grading Report Sequence</field>
-            <field name="code">custom.quality.grading.daily</field>
-            <field name="prefix">QR-</field>
-            <field name="padding">4</field>
-            <field name="company_id" eval="False"/>
-        </record>
 
         <!-- Sorting Report Daily Sequence -->
         <record id="seq_custom_sorting_report" model="ir.sequence">

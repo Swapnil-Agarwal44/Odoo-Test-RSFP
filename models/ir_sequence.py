@@ -18,12 +18,6 @@ class IrSequence(models.Model):
             _logger.info(f"LOT sequence result: {result}")
             return result
         
-        # Handle quality grading report sequence
-        elif sequence_code == 'custom.quality.grading.daily':
-            result = self._get_daily_sequence(sequence_code, 'QR')
-            _logger.info(f"QR grading sequence result: {result}")
-            return result
-        
         # Handle sorting report sequence
         elif sequence_code == 'custom.sorting.report.daily':
             result = self._get_daily_sequence(sequence_code, 'SR')
