@@ -3,3 +3,4 @@ access_rsfp_enquiry_id,RSFP Enquiry ID User,model_rsfp_enquiry_id,base.group_use
 access_sorting_report_user,Sorting Report User,model_custom_sorting_report,base.group_user,1,1,1,1
 access_quality_report_user,Quality Report User,model_custom_quality_report,base.group_user,1,1,1,1
 access_quality_report_image_user,Quality Report Image User,model_custom_quality_report_image,base.group_user,1,1,1,1
+access_child_lot_creation_user,Child Lot Creation User,model_custom_child_lot_creation,base.group_user,1,1,1,1

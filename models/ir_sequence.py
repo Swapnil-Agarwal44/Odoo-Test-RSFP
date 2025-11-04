@@ -30,6 +30,12 @@ class IrSequence(models.Model):
             _logger.info(f"QR report sequence result: {result}")
             return result
         
+        # Handle child lot creation sequence
+        elif sequence_code == 'custom.child.lot.creation.daily':
+            result = self._get_daily_sequence(sequence_code, 'CLC')
+            _logger.info(f"CLC sequence result: {result}")
+            return result
+        
         _logger.info(f"Using default sequence handling for: {sequence_code}")
         return super(IrSequence, self).next_by_code(sequence_code, sequence_date)
 

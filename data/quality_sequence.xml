@@ -33,5 +33,16 @@
             <field name="use_date_range">False</field>
             <field name="number_next">1</field>
         </record>
+
+        <!-- Child Lot Creation Daily Sequence -->
+        <record id="seq_custom_child_lot_creation" model="ir.sequence">
+            <field name="name">Child Lot Creation Daily Sequence</field>
+            <field name="code">custom.child.lot.creation.daily</field>
+            <field name="prefix"></field>
+            <field name="padding">4</field>
+            <field name="number_increment">1</field>
+            <field name="use_date_range">False</field>
+            <field name="number_next">1</field>
+        </record>
     </data>
 </odoo>

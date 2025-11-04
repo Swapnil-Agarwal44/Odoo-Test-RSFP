@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="action_report_child_lot_creation_detail" model="ir.actions.report">
+            <field name="name">Child Lot Creation Report</field>
+            <field name="model">custom.child.lot.creation</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">custom_rsfp_module.report_child_lot_creation_document_detail</field>
+            <field name="report_file">custom_rsfp_module.report_child_lot_creation_document_detail</field>
+            <field name="print_report_name">'Child Lot Creation - %s' % object.name</field>
+            <field name="binding_model_id" ref="model_custom_child_lot_creation"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <template id="report_child_lot_creation_document_detail">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            
+                            <h2 class="mt-3" style="text-align: center;">Quality Testing Report: <span t-field="doc.name"/></h2>
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <strong>Source Lot:</strong> <span t-field="doc.parent_lot_id.name"/><br/>
+                                    <strong>Root Parent Lot:</strong> <span t-field="doc.root_parent_lot_id.name"/><br/>
+                                    <strong>Product:</strong> <span t-field="doc.product_id.display_name"/><br/>
+                                    <strong>Source Quantity:</strong> <span t-field="doc.source_qty_at_creation"/> <span t-field="doc.uom_id.name"/>
+                                </div>
+                                <div class="col-6 text-right">
+                                    <strong>Creation Date:</strong> <span t-field="doc.creation_date"/><br/>
+                                    <strong>Created By:</strong> <span t-field="doc.creator_id.name"/><br/>
+                                    <strong>Location:</strong> <span t-field="doc.creation_location_id.display_name"/><br/>
+                                    <strong>Status:</strong> <span t-field="doc.state"/>
+                                </div>
+                            </div>
+                            <hr/>
+
+                            <t t-if="doc.purchase_order_id">
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h4>Purchase Order Information</h4>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <strong>PO Number:</strong> <span t-field="doc.purchase_order_id.name"/><br/>
+                                                <strong>Vendor:</strong> <span t-field="doc.purchase_order_id.partner_id.name"/>
+                                            </div>
+                                            <div class="col-6">
+                                                <strong>Order Date:</strong> <span t-field="doc.purchase_order_id.date_order"/><br/>
+                                                <strong>PO Status:</strong> <span t-field="doc.purchase_order_id.state"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr/>
+                            </t>
+
+                            <h4>Child Lot Subdivision Summary</h4>
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <table class="table table-sm table-bordered">
+                                        <thead style="background-color: #f8f9fa;">
+                                            <tr>
+                                                <th>Grade</th>
+                                                <th>Quantity</th>
+                                                <th>Unit</th>
+                                                <th>Child Lot Name</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-if="doc.qty_grade_a > 0">
+                                                <td><strong>Grade A</strong></td>
+                                                <td><span t-field="doc.qty_grade_a"/></td>
+                                                <td><span t-field="doc.uom_id.name"/></td>
+                                                <td><t t-esc="doc.parent_lot_id.name + 'A'"/></td>
+                                            </tr>
+                                            <tr t-if="doc.qty_grade_b > 0">
+                                                <td><strong>Grade B</strong></td>
+                                                <td><span t-field="doc.qty_grade_b"/></td>
+                                                <td><span t-field="doc.uom_id.name"/></td>
+                                                <td><t t-esc="doc.parent_lot_id.name + 'B'"/></td>
+                                            </tr>
+                                            <tr t-if="doc.qty_grade_c > 0">
+                                                <td><strong>Grade C</strong></td>
+                                                <td><span t-field="doc.qty_grade_c"/></td>
+                                                <td><span t-field="doc.uom_id.name"/></td>
+                                                <td><t t-esc="doc.parent_lot_id.name + 'C'"/></td>
+                                            </tr>
+                                            <tr style="background-color: #e9ecef; font-weight: bold;">
+                                                <td><strong>Total</strong></td>
+                                                <td><span t-field="doc.qty_total_subdivided"/></td>
+                                                <td><span t-field="doc.uom_id.name"/></td>
+                                                <td>-</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <t t-if="doc.child_lot_ids">
+                                <h4 class="mt-4" style="text-align: center;">Created Child Lots</h4>
+                                <t t-foreach="doc.child_lot_ids" t-as="child_lot">
+                                    
+                                    <div class="row justify-content-center mb-4" style="page-break-inside: avoid;"> 
+                                        <div class="col-8">
+                                            <div style="border: 2px solid #000; padding: 20px; text-align: center; background-color: #fff8dc;">
+                                                
+                                                <h6 style="margin-bottom: 10px; color: #d2691e; font-weight: bold;">CHILD LOT</h6>
+                                                
+                                                <div style="margin-bottom: 12px;">
+                                                    <img t-att-src="'/report/barcode/Code128/%s?width=400&amp;height=100' % child_lot.name" 
+                                                        style="max-width: 100%; height: auto;" 
+                                                        alt="Barcode"/>
+                                                </div>
+                                                
+                                                <div style="font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #000;">
+                                                    <span t-field="child_lot.name"/>
+                                                </div>
+                                                
+                                                <div style="font-size: 14px; margin-bottom: 8px;">
+                                                    <strong>Product:</strong> <span t-field="child_lot.product_id.name"/>
+                                                </div>
+                                                
+                                                <div style="font-size: 14px; margin-bottom: 8px;">
+                                                    <strong>Quantity:</strong> <span t-field="child_lot.product_qty"/> <span t-field="child_lot.product_uom_id.name"/>
+                                                </div>
+                                                
+                                                <div style="font-size: 14px; margin-bottom: 8px;">
+                                                    <strong>Source Lot:</strong> <span t-field="doc.parent_lot_id.name"/>
+                                                </div>
+                                                
+                                                <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                                                    Created: <span t-field="doc.creation_date"/> | Report: <span t-field="doc.name"/>
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+
+                            <t t-if="doc.notes">
+                                <h4 class="mt-4">Creation Notes</h4>
+                                <div class="alert alert-info" role="alert">
+                                    <p><span t-field="doc.notes"/></p>
+                                </div>
+                            </t>
+
+                            <div class="row mt-5">
+                                <div class="col-12 text-center">
+                                    <div style="border-top: 2px solid #000; padding-top: 20px;">
+                                        <p style="font-size: 14px; color: #666;">
+                                            This report confirms the creation of <strong><span t-esc="len(doc.child_lot_ids)"/> child lots</strong> 
+                                            from source lot <strong><span t-field="doc.parent_lot_id.name"/></strong>
+                                        </p>
+                                        <p style="font-size: 12px; color: #888;">
+                                            Generated on <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y at %H:%M')"/>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

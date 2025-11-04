@@ -14,7 +14,7 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        
+
         'data/quality_sequence.xml',
 
         'views/quality_menu.xml',
@@ -44,6 +44,10 @@
         'reports/quality_report_templates.xml',  # ← ADD THIS LINE
         
         'reports/lot_label_templates.xml',
+
+        'views/child_lot_creation_views.xml',
+
+        'reports/child_lot_creation_templates.xml',
 
 
     ],
