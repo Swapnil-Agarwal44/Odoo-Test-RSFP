@@ -6,4 +6,5 @@ from . import purchase_order
 from . import quality_sorting
 from . import quality_report
 from . import child_lot_creation
+from . import child_lot_line
 from . import rsfp_enquiry_id

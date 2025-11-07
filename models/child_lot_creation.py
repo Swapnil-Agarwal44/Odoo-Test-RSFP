@@ -1,5 +1,5 @@
-from odoo import models, fields, api, _ # type: ignore
-from odoo.exceptions import UserError, ValidationError # type: ignore
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError, ValidationError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ class CustomChildLotCreation(models.Model):
         'stock.lot',
         string='Source Lot',
         required=True,
+        states={'confirmed': [('readonly', True)]},
         help="Select the lot to be subdivided into additional child lots"
     )
     
@@ -63,20 +64,25 @@ class CustomChildLotCreation(models.Model):
     creation_date = fields.Date(
         string='Creation Date',
         required=True,
-        default=fields.Date.today
+        default=fields.Date.today,
+        states={'confirmed': [('readonly', True)]}
     )
     
     creator_id = fields.Many2one(
         'res.users',
         string='Created By',
         default=lambda self: self.env.user,
-        required=True
+        required=True,
+        states={'confirmed': [('readonly', True)]}
     )
-    
+
+    # ADD THIS MISSING FIELD:
     creation_location_id = fields.Many2one(
         'stock.location',
         string='Creation Location',
-        required=True
+        required=True,
+        states={'confirmed': [('readonly', True)]},
+        help="Default location for creating child lots"
     )
 
     # Source Lot Quantity
@@ -95,28 +101,27 @@ class CustomChildLotCreation(models.Model):
         help="Original source lot quantity when creation was performed"
     )
 
-    # Subdivision Quantities
-    qty_grade_a = fields.Float(
-        string='Grade A Qty',
-        digits='Product Unit of Measure',
-        default=0.0
-    )
-    qty_grade_b = fields.Float(
-        string='Grade B Qty',
-        digits='Product Unit of Measure',
-        default=0.0
-    )
-    qty_grade_c = fields.Float(
-        string='Grade C Qty',
-        digits='Product Unit of Measure',
-        default=0.0
+    # NEW: Child Lot Lines (replacing Grade A/B/C)
+    child_lot_lines = fields.One2many(
+        'custom.child.lot.line',
+        'creation_id',
+        string='Child Lots to Create',
+        states={'confirmed': [('readonly', True)]}
     )
 
     # Computed Fields
-    qty_total_subdivided = fields.Float(
-        string='Total Subdivided Qty',
-        compute='_compute_total_subdivided',
-        store=True
+    qty_total_to_create = fields.Float(
+        string='Total Quantity to Create',
+        compute='_compute_total_to_create',
+        store=True,
+        help="Sum of all child lot quantities"
+    )
+
+    qty_available_remaining = fields.Float(
+    string='Quantity Available',
+    compute='_compute_qty_available_remaining',
+    store=False,
+    help="Remaining quantity available in source lot after assigning child lot quantities"
     )
 
     uom_id = fields.Many2one(
@@ -146,7 +151,10 @@ class CustomChildLotCreation(models.Model):
         help="Comma-separated child lot names for easy copying"
     )
 
-    notes = fields.Text(string='Creation Notes')
+    notes = fields.Text(
+        string='Creation Notes',
+        states={'confirmed': [('readonly', True)]}
+    )
 
     @api.depends('parent_lot_id')
     def _compute_root_parent_lot(self):
@@ -198,31 +206,25 @@ class CustomChildLotCreation(models.Model):
                 # For draft records, use current lot quantity
                 record.source_qty_total = record.parent_lot_id.product_qty or 0.0
 
-    @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
-    def _compute_total_subdivided(self):
+    @api.depends('child_lot_lines.quantity')
+    def _compute_total_to_create(self):
+        """Compute total quantity to be created"""
         for record in self:
-            record.qty_total_subdivided = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            record.qty_total_to_create = sum(line.quantity for line in record.child_lot_lines if line.quantity > 0)
 
-    @api.depends('parent_lot_id', 'inventory_processed', 'name')
-    def _compute_child_lot_ids(self):
+    @api.depends('source_qty_total', 'child_lot_lines.quantity')
+    def _compute_qty_available_remaining(self):
+        """Compute remaining quantity available after assigning child lot quantities"""
         for record in self:
-            if not record.parent_lot_id or not record.inventory_processed:
-                record.child_lot_ids = [(6, 0, [])]
-                continue
-            
-            # Find child lots created by this process
-            # They will have names like: parent_name + grade_letter (appended, no hyphen)
-            parent_lot_name = record.parent_lot_id.name
-            child_lots = self.env['stock.lot'].search([
-                ('name', 'in', [
-                    f"{parent_lot_name}A",
-                    f"{parent_lot_name}B", 
-                    f"{parent_lot_name}C"
-                ]),
-                ('parent_lot_id', '=', record.parent_lot_id.id)
-            ])
-            
-            record.child_lot_ids = [(6, 0, child_lots.ids)]
+            total_assigned = sum(line.quantity for line in record.child_lot_lines if line.quantity > 0)
+            record.qty_available_remaining = record.source_qty_total - total_assigned
+
+    @api.depends('child_lot_lines.created_lot_id')
+    def _compute_child_lot_ids(self):
+        """Compute created child lots from lines"""
+        for record in self:
+            created_lots = record.child_lot_lines.mapped('created_lot_id')
+            record.child_lot_ids = [(6, 0, created_lots.ids)]
 
     @api.depends('child_lot_ids')
     def _compute_child_lot_names(self):
@@ -237,33 +239,38 @@ class CustomChildLotCreation(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
-                # Use sequence for child lot creation
                 vals['name'] = self.env['ir.sequence'].next_by_code('custom.child.lot.creation.daily') or _('New')
         return super().create(vals_list)
 
-    @api.constrains('qty_grade_a', 'qty_grade_b', 'qty_grade_c', 'source_qty_total')
-    def _check_subdivision_quantities(self):
-        # Skip validation during module installation/update
-        if self.env.context.get('module_uninstall') or self.env.context.get('install_mode'):
-            return
-        
+    @api.constrains('child_lot_lines')
+    def _check_child_lot_quantities(self):
+        """Validate child lot quantities"""
         for record in self:
-            # Compute source quantity on the fly for validation
-            source_qty = record.parent_lot_id.product_qty if record.parent_lot_id else 0.0
-            total_subdivided = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            if record.state == 'confirmed':
+                continue  # Skip validation for confirmed records
+                
+            if not record.child_lot_lines:
+                continue  # Allow empty lines in draft
             
-            if total_subdivided > source_qty:
+            # Check if any line has valid quantity
+            valid_lines = record.child_lot_lines.filtered(lambda l: l.quantity > 0)
+            if not valid_lines:
+                continue  # Allow all-zero quantities in draft
+            
+            # Check total doesn't exceed source quantity
+            source_qty = record.parent_lot_id.product_qty if record.parent_lot_id else 0.0
+            if record.qty_total_to_create > source_qty:
                 raise ValidationError(_(
-                    "Total subdivided quantity (%.2f) cannot exceed source lot quantity (%.2f)"
-                ) % (total_subdivided, source_qty))
+                    "Total child lot quantities (%.2f) cannot exceed source lot quantity (%.2f)"
+                ) % (record.qty_total_to_create, source_qty))
 
     def action_confirm(self):
         """Confirm the child lot creation and create child lots"""
         for record in self:
+            record._validate_creation_data()
             # Store the source quantity BEFORE any processing
             record.source_qty_at_creation = record.parent_lot_id.product_qty
-            record._validate_subdivision_data()
-            record._create_child_lots()
+            record._create_child_lots_sequential()
             record.write({'state': 'confirmed'})
             record.message_post(
                 body=_("Child Lot Creation confirmed by %s") % self.env.user.name
@@ -271,12 +278,17 @@ class CustomChildLotCreation(models.Model):
         
         return self._print_creation_report()
 
-    def _validate_subdivision_data(self):
-        """Validate subdivision data before confirmation"""
+    def _validate_creation_data(self):
+        """Validate creation data before confirmation"""
         self.ensure_one()
         
         if not self.parent_lot_id:
             raise UserError(_("Source Lot is required."))
+
+        # Check if we have any valid child lot lines
+        valid_lines = self.child_lot_lines.filtered(lambda l: l.quantity > 0)
+        if not valid_lines:
+            raise UserError(_("At least one child lot with quantity > 0 is required."))
 
         # Use current source quantity for validation
         source_qty = self.parent_lot_id.product_qty or 0.0
@@ -284,66 +296,132 @@ class CustomChildLotCreation(models.Model):
         if source_qty <= 0:
             raise UserError(_("Source lot has no available quantity."))
         
-        if abs(self.qty_total_subdivided - self.source_qty_total) > 0.01:
+        if self.qty_total_to_create > source_qty:
             raise UserError(_(
-                "Total subdivided quantity (%.2f) must equal source lot quantity (%.2f)"
-            ) % (self.qty_total_subdivided, self.source_qty_total))
-        
-        if self.qty_total_subdivided <= 0:
-            raise UserError(_("At least one grade must have quantity > 0."))
+                "Total child lot quantities (%.2f) cannot exceed source lot quantity (%.2f)"
+            ) % (self.qty_total_to_create, source_qty))
 
-    def _create_child_lots(self):
-        """Create child lots based on subdivision quantities"""
+        # Check all lines have locations
+        for line in valid_lines:
+            if not line.location_id:
+                raise UserError(_("Location is required for all child lot lines."))
+
+    def _create_child_lots_sequential(self):
+        """Create child lots with sequential naming"""
         self.ensure_one()
         
         if self.inventory_processed:
             return True
 
-        stock_location = self.env.ref('stock.stock_location_stock')
         parent_lot_name = self.parent_lot_id.name
         created_lots = []
+        
+        # Find the next sequential number
+        next_number = self._get_next_sequence_number()
+        
+        # Process each valid line
+        valid_lines = self.child_lot_lines.filtered(lambda l: l.quantity > 0)
+        
+        for line in valid_lines:
+            # Generate sequential child lot name
+            child_lot_name = f"{parent_lot_name}-{next_number}"
+            
+            # Use same product as parent lot (graded product)
+            target_product = self.product_id
 
-        # Define grades and their quantities
-        grades = [
-            ('A', self.qty_grade_a),
-            ('B', self.qty_grade_b),
-            ('C', self.qty_grade_c)
-        ]
+            # Create child lot
+            child_lot = self.env['stock.lot'].create({
+                'name': child_lot_name,
+                'product_id': target_product.id,
+                'ref': self.root_parent_lot_id.name if self.root_parent_lot_id else parent_lot_name,
+                'parent_lot_id': self.parent_lot_id.id
+            })
 
-        for grade_letter, qty in grades:
-            if qty > 0:
-                # IMPORTANT: No hyphen - just append grade letter
-                child_lot_name = f"{parent_lot_name}{grade_letter}"
-                
-                # Use same product as parent lot
-                target_product = self.product_id
+            # Add inventory for child lot
+            self.env['stock.quant']._update_available_quantity(
+                target_product,
+                line.location_id,
+                line.quantity,
+                lot_id=child_lot
+            )
+            
+            # IMPORTANT: Reduce parent lot quantity
+            parent_location = self._get_parent_lot_location()
+            self.env['stock.quant']._update_available_quantity(
+                self.parent_lot_id.product_id,
+                parent_location,
+                -line.quantity,
+                lot_id=self.parent_lot_id
+            )
 
-                # Create child lot
-                child_lot = self.env['stock.lot'].create({
-                    'name': child_lot_name,
-                    'product_id': target_product.id,
-                    'ref': self.root_parent_lot_id.name if self.root_parent_lot_id else parent_lot_name,
-                    'parent_lot_id': self.parent_lot_id.id
-                })
+            # Update line with created lot
+            line.created_lot_id = child_lot.id
 
-                # Add inventory for child lots
-                self.env['stock.quant']._update_available_quantity(
-                    target_product,
-                    stock_location,
-                    qty,
-                    lot_id=child_lot
-                )
-
-                created_lots.append(child_lot_name)
+            created_lots.append(child_lot_name)
+            next_number += 1  # Increment for next lot
 
         self.write({'inventory_processed': True})
         
         if created_lots:
             self.message_post(
-                body=_("Child lots created: %s") % ', '.join(created_lots)
+                body=_("Child lots created: %s (Parent lot quantity reduced accordingly)") % ', '.join(created_lots)
             )
 
         return True
+
+    def _get_next_sequence_number(self):
+        """Get the next sequential number for child lots"""
+        self.ensure_one()
+        
+        parent_lot_name = self.parent_lot_id.name
+        
+        # Find existing child lots with pattern: parent_name-NUMBER
+        existing_lots = self.env['stock.lot'].search([
+            ('name', 'like', f"{parent_lot_name}-%"),
+            ('parent_lot_id', '=', self.parent_lot_id.id)
+        ])
+        
+        max_number = 0
+        pattern_prefix = f"{parent_lot_name}-"
+        
+        for lot in existing_lots:
+            if lot.name.startswith(pattern_prefix):
+                # Extract the number after the last hyphen
+                suffix = lot.name[len(pattern_prefix):]
+                # Handle multi-level: A-1-2 -> get the first number after parent name
+                if '-' in suffix:
+                    # This is a grandchild (e.g., DM-171125-0001-A-1-2)
+                    # We want the first number (1 in this case)
+                    try:
+                        first_number = int(suffix.split('-')[0])
+                        max_number = max(max_number, first_number)
+                    except ValueError:
+                        continue
+                else:
+                    # This is a direct child (e.g., DM-171125-0001-A-1)
+                    try:
+                        number = int(suffix)
+                        max_number = max(max_number, number)
+                    except ValueError:
+                        continue
+        
+        return max_number + 1
+
+    def _get_parent_lot_location(self):
+        """Get the location where parent lot inventory exists"""
+        self.ensure_one()
+        
+        # Find where the parent lot has inventory
+        quants = self.env['stock.quant'].search([
+            ('lot_id', '=', self.parent_lot_id.id),
+            ('quantity', '>', 0)
+        ], limit=1)
+        
+        if quants:
+            return quants.location_id
+        else:
+            # Fallback to stock location
+            return self.env.ref('stock.stock_location_stock')
 
     def _print_creation_report(self):
         """Print child lot creation report"""
@@ -352,13 +430,14 @@ class CustomChildLotCreation(models.Model):
             report = self.env.ref('custom_rsfp_module.action_report_child_lot_creation_detail')
             return report.report_action(self)
         except ValueError:
-            # If report template not found, just return True to avoid errors
             _logger.warning("Child lot creation report template not found, skipping report generation")
             return True
 
     def action_reset_to_draft(self):
-        """Reset to draft state"""
+        """Reset to draft state (only if no child lots created)"""
         for record in self:
+            if record.inventory_processed:
+                raise UserError(_("Cannot reset to draft: Child lots have already been created. Please create a new record instead."))
             record.write({'state': 'draft'})
         return True
 
@@ -381,3 +460,51 @@ class CustomChildLotCreation(models.Model):
                 'create': False
             }
         }
+
+    def action_add_empty_line(self):
+        """Add an empty line to the child lot lines"""
+        self.ensure_one()
+        if self.state != 'draft':
+            raise UserError(_("Cannot add lines to confirmed records."))
+        
+        # Get default location
+        default_location = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
+        if self.parent_lot_id:
+            quants = self.env['stock.quant'].search([
+                ('lot_id', '=', self.parent_lot_id.id),
+                ('quantity', '>', 0)
+            ], limit=1)
+            if quants:
+                default_location = quants.location_id
+
+        # Add new line
+        self.env['custom.child.lot.line'].create({
+            'creation_id': self.id,
+            'sequence': len(self.child_lot_lines) * 10 + 10,
+            'quantity': 0.0,
+            'location_id': default_location.id if default_location else False,
+            'notes': ''
+        })
+        
+        return True
+
+    @api.onchange('parent_lot_id')
+    def _onchange_parent_lot_id(self):
+        """When parent lot changes, add one empty line if no lines exist"""
+        if self.parent_lot_id and not self.child_lot_lines:
+            # Get default location from parent lot
+            default_location = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
+            quants = self.env['stock.quant'].search([
+                ('lot_id', '=', self.parent_lot_id.id),
+                ('quantity', '>', 0)
+            ], limit=1)
+            if quants:
+                default_location = quants.location_id
+            
+            # Create initial empty line
+            self.child_lot_lines = [(0, 0, {
+                'sequence': 10,
+                'quantity': 0.0,
+                'location_id': default_location.id if default_location else False,
+                'notes': ''
+            })]

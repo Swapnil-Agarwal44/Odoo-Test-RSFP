@@ -11,7 +11,7 @@
                     Create New Child Lot Creation Report
                 </p>
                 <p>
-                    Subdivide any lot (parent or child) into additional child lots with grade suffixes.
+                    Subdivide any lot (parent or child) into additional child lots with sequential naming.
                 </p>
             </field>
         </record>
@@ -35,9 +35,25 @@
                     <field name="product_id"/>
                     <field name="creation_date"/>
                     <field name="creator_id"/>
-                    <field name="qty_total_subdivided"/>
+                    <field name="qty_total_to_create"/>
                     <field name="inventory_processed" widget="boolean_toggle"/>
                     <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Child Lot Line Tree View -->
+        <record id="view_child_lot_line_tree" model="ir.ui.view">
+            <field name="name">custom.child.lot.line.tree</field>
+            <field name="model">custom.child.lot.line</field>
+            <field name="arch" type="xml">
+                <tree string="Child Lot Lines" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="quantity" sum="Total Quantity"/>
+                    <field name="location_id" options="{'no_create': True}"/>
+                    <field name="notes"/>
+                    <field name="created_lot_name" readonly="1" 
+                           column_invisible="parent.state == 'draft'"/>
                 </tree>
             </field>
         </record>
@@ -52,7 +68,7 @@
                         <button name="action_confirm" type="object" string="Confirm Creation" 
                             class="oe_highlight" invisible="state != 'draft'"/>
                         <button name="action_reset_to_draft" type="object" string="Reset to Draft" 
-                            invisible="state != 'confirmed'"/>
+                            invisible="state != 'confirmed'" confirm="This will reset the record to draft. Are you sure?"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
                     </header>
                     <sheet>
@@ -63,8 +79,8 @@
                         <!-- Basic Information -->
                         <group>
                             <group>
-                                <field name="parent_lot_id" readonly="state == 'confirmed'" 
-                                       options="{'no_create': True}"/>
+                                <field name="parent_lot_id" options="{'no_create': True}" 
+                                       readonly="state == 'confirmed'"/>
                                 <field name="root_parent_lot_id" readonly="1"/>
                                 <field name="product_id" readonly="1"/>
                                 <field name="purchase_order_id" readonly="1"/>
@@ -73,31 +89,63 @@
                             <group>
                                 <field name="creation_date" readonly="state == 'confirmed'"/>
                                 <field name="creator_id" readonly="state == 'confirmed'"/>
-                                <field name="creation_location_id" readonly="state == 'confirmed'"/>
+                                <field name="creation_location_id" options="{'no_create': True}" 
+                                       readonly="state == 'confirmed'"/>
+                                <field name="source_qty_total" readonly="1"/>
                             </group>
                         </group>
 
-                        <!-- Quantity Information -->
-                        <separator string="Subdivision Quantities"/>
-                        <group>
-                            <group string="Source Lot">
-                                <field name="source_qty_total" readonly="1"/>
-                            </group>
-                            <group string="Subdivided Quantities">
-                                <field name="qty_grade_a" readonly="state == 'confirmed'"/>
-                                <field name="qty_grade_b" readonly="state == 'confirmed'"/>
-                                <field name="qty_grade_c" readonly="state == 'confirmed'"/>
-                                <field name="qty_total_subdivided" readonly="1" 
-                                       decoration-success="qty_total_subdivided == source_qty_total"
-                                       decoration-warning="qty_total_subdivided != source_qty_total"/>
-                            </group>
-                        </group>
+                        <!-- Child Lot Lines -->
+                        <separator string="Child Lots to Create"/>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <span class="text-muted">
+                                        Quantity Available: 
+                                        <field name="qty_available_remaining" readonly="1" class="o_field_number" 
+                                            decoration-success="qty_available_remaining >= 0"
+                                            decoration-danger="qty_available_remaining &lt; 0"/>
+                                        <field name="uom_id" readonly="1" nolabel="1"/>
+                                    </span>
+                                </div>
+                                
+                                <field name="child_lot_lines" 
+                                    context="{'default_creation_id': id}"
+                                    readonly="state == 'confirmed'">
+                                    <tree editable="bottom" 
+                                        decoration-success="quantity > 0 and location_id"
+                                        decoration-warning="quantity > 0 and not location_id"
+                                        decoration-muted="quantity == 0">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="quantity" sum="Total Quantity" 
+                                            decoration-bf="quantity > 0"/>
+                                        <field name="location_id" options="{'no_create': True}" 
+                                            required="quantity > 0"/>
+                                        <field name="notes" placeholder="Optional notes for this child lot"/>
+                                        <field name="created_lot_name" readonly="1" 
+                                            column_invisible="parent.state == 'draft'"
+                                            decoration-info="created_lot_name"/>
+                                    </tree>
+                                </field>
+                                
+                                <!-- Help text -->
+                                <div class="alert alert-info mt-3" invisible="state != 'draft'">
+                                    <small>
+                                        <strong>Instructions:</strong><br/>
+                                        • Enter quantity and location for each child lot you want to create<br/>
+                                        • Child lots will be named sequentially (e.g., DM-171125-0001-A-1, DM-171125-0001-A-2)<br/>
+                                        • <strong>Quantity Available</strong> shows remaining source lot quantity (Green = OK, Red = Over-allocated)<br/>
+                                        • Parent lot quantity will be reduced after creation
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Processing Status -->
                         <group invisible="state == 'draft'">
                             <field name="inventory_processed" readonly="1"/>
                             
-                            <!-- Display child lots with clickable buttons -->
+                            <!-- Display created child lots -->
                             <div colspan="2" invisible="not inventory_processed">
                                 <div class="o_form_label">Created Child Lots</div>
                                 
@@ -131,6 +179,8 @@
                                 <span class="text-muted">No child lots created yet</span>
                             </div>
                         </group>
+
+                        <!-- Notes -->
                         <group>
                             <field name="notes" placeholder="Creation notes and observations..." 
                                    readonly="state == 'confirmed'"/>
