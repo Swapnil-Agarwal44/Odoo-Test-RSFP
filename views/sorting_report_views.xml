@@ -34,8 +34,6 @@
                     <field name="product_id"/>
                     <field name="sorting_date"/>
                     <field name="sorter_id"/>
-                    <!-- REMOVED: parent_qty_total field that was causing database error -->
-                    <!-- <field name="parent_qty_total"/> -->
                     <field name="qty_total_sorted"/>
                     <field name="inventory_processed" widget="boolean_toggle"/>
                     <field name="state" decoration-info="state == 'draft'" decoration-success="state == 'confirmed'"/>
@@ -64,7 +62,6 @@
                         <!-- Basic Information -->
                         <group>
                             <group>
-                                <!-- FIXED: Removed domain and available_lot_ids field -->
                                 <field name="parent_lot_id" readonly="state == 'confirmed'" 
                                        options="{'no_create': True}"/>
                                 <field name="product_id" readonly="1"/>

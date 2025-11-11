@@ -138,21 +138,6 @@ class CustomQualityReport(models.Model):
         help="Percentage of moisture in the product"
     )
 
-    # Valuation
-    # rate_per_kg = fields.Float(
-    #     string='Rate/Kg',
-    #     digits='Product Price',
-    #     required=True,
-    #     default=0.0
-    # )
-
-    # total_amount = fields.Float(
-    #     string='Total Amount',
-    #     compute='_compute_total_amount',
-    #     store=True,
-    #     readonly=True
-    # )
-
     # Images
     image_ids = fields.One2many(
         'custom.quality.report.image',
@@ -174,11 +159,6 @@ class CustomQualityReport(models.Model):
                 record.sorting_report_id = sorting_report
             else:
                 record.sorting_report_id = False
-
-    # @api.depends('lot_qty_total', 'rate_per_kg')
-    # def _compute_total_amount(self):
-    #     for record in self:
-    #         record.total_amount = record.lot_qty_total * record.rate_per_kg
 
     @api.model_create_multi
     def create(self, vals_list):
