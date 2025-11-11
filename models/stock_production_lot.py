@@ -20,6 +20,32 @@ class StockLot(models.Model):
         help="The parent lot from which this child lot was created during quality grading"
     )
 
+    # NEW: Arrived quantity field
+    arrived_quantity = fields.Float(
+        string='Arrived Quantity',
+        readonly=True,
+        digits='Product Unit of Measure',
+        help="Initial quantity when the lot was first created/received",
+        copy=False
+    )
+
+
+    #second attempt: 
+    @api.depends('product_qty')
+    def _compute_arrived_quantity(self):
+        """Compute arrived quantity from current quantity if not manually set"""
+        for lot in self:
+            # Only set if not already set and we have quantity
+            if not lot.arrived_quantity and lot.product_qty > 0:
+                lot.arrived_quantity = lot.product_qty
+
+    # Add a button to set arrived quantity manually
+    def action_set_arrived_quantity(self):
+        """Manually set arrived quantity to current quantity"""
+        for lot in self:
+            if lot.product_qty > 0:
+                lot.arrived_quantity = lot.product_qty
+
     @api.model
     def create(self, vals):
         """Override create to inject custom lot name if not provided"""
@@ -50,7 +76,54 @@ class StockLot(models.Model):
                     _logger.info(f"Name set to: {vals['name']}")
         
         _logger.info(f"Final vals before super: {vals}")
-        return super(StockLot, self).create(vals)
+                
+        # Create the lot first
+        lot = super(StockLot, self).create(vals)
+        
+        # NEW: Capture the arrived quantity after creation
+        # Wait a moment for stock moves to process, then get the initial quantity
+
+        #first attempt
+        # if lot.product_qty and not vals.get('arrived_quantity'):
+        #     lot.sudo().write({'arrived_quantity': lot.product_qty})
+        #     _logger.info(f"Set arrived_quantity to {lot.product_qty} for lot {lot.name}")
+
+
+        #second attempt:
+        # NEW: Set arrived_quantity if provided in context (from stock moves)
+    #     arrived_qty = self._context.get('arrived_quantity')
+    #     if arrived_qty and not lot.arrived_quantity:
+    #         lot.sudo().write({'arrived_quantity': arrived_qty})
+    #         _logger.info(f"Set arrived_quantity to {arrived_qty} for lot {lot.name} from context")
+        
+    #     return lot
+
+    # def set_arrived_quantity(self, quantity):
+    #     """Method to set arrived quantity (called from stock move processing)"""
+    #     if not self.arrived_quantity and quantity > 0:
+    #         self.sudo().write({'arrived_quantity': quantity})
+    #         _logger.info(f"Set arrived_quantity to {quantity} for lot {self.name}")
+
+
+
+
+
+    #third attempt: 
+    # Ensure we have a valid lot record
+        if not lot:
+            _logger.error("Super create returned None - this should not happen!")
+            raise ValueError("Failed to create lot record")
+        
+        # NEW: Auto-populate arrived_quantity with current quantity if not set
+        try:
+            if lot.product_qty and not lot.arrived_quantity:
+                lot.sudo().write({'arrived_quantity': lot.product_qty})
+                _logger.info(f"Set arrived_quantity to {lot.product_qty} for lot {lot.name}")
+        except Exception as e:
+            _logger.warning(f"Could not set arrived_quantity for lot {lot.name}: {e}")
+        
+        # ALWAYS return the lot record
+        return lot
     
     def action_view_parent_lot(self):
         """Action to view the parent lot"""
@@ -101,32 +174,69 @@ class StockLot(models.Model):
             _logger.info("No product_id provided")
             return False
             
-        product = self.env['product.product'].browse(product_id)
-        if not product.exists():
-            _logger.info("Product does not exist")
-            return False
+        # product = self.env['product.product'].browse(product_id)
+        # if not product.exists():
+        #     _logger.info("Product does not exist")
+        #     return False
         
-        _logger.info(f"Product found: {product.name}")
-        abbreviation = product.product_tmpl_id.lot_abbreviation or 'XX'
-        _logger.info(f"Abbreviation: {abbreviation}")
+        # _logger.info(f"Product found: {product.name}")
+        # abbreviation = product.product_tmpl_id.lot_abbreviation or 'XX'
+        # _logger.info(f"Abbreviation: {abbreviation}")
         
-        today = fields.Date.today()
-        date_str = today.strftime('%d%m%y')
-        _logger.info(f"Date string: {date_str}")
+        # today = fields.Date.today()
+        # date_str = today.strftime('%d%m%y')
+        # _logger.info(f"Date string: {date_str}")
         
-        # Get the next sequence number for today
-        sequence_code = 'parent.lot.daily.sequence'
-        seq_number = self.env['ir.sequence'].next_by_code(sequence_code)
-        _logger.info(f"Sequence number: {seq_number}")
+        # # Get the next sequence number for today
+        # sequence_code = 'parent.lot.daily.sequence'
+        # seq_number = self.env['ir.sequence'].next_by_code(sequence_code)
+        # _logger.info(f"Sequence number: {seq_number}")
         
-        if not seq_number:
-            _logger.error("Sequence not found!")
-            return f"{abbreviation}-{date_str}-ERROR"
+        # if not seq_number:
+        #     _logger.error("Sequence not found!")
+        #     return f"{abbreviation}-{date_str}-ERROR"
         
-        # Format: ABBR-DDMMYY-XXXX (e.g., ABC-161025-0001)
-        lot_name = f"{abbreviation}-{date_str}-{seq_number}"
-        _logger.info(f"Final lot name: {lot_name}")
-        return lot_name
+        # # Format: ABBR-DDMMYY-XXXX (e.g., ABC-161025-0001)
+        # lot_name = f"{abbreviation}-{date_str}-{seq_number}"
+        # _logger.info(f"Final lot name: {lot_name}")
+        # return lot_name
+
+
+
+        #third attempt: 
+        try:
+            product = self.env['product.product'].browse(product_id)
+            if not product.exists():
+                _logger.info("Product does not exist")
+                return False
+            
+            _logger.info(f"Product found: {product.name}")
+            abbreviation = product.product_tmpl_id.lot_abbreviation or 'XX'
+            _logger.info(f"Abbreviation: {abbreviation}")
+            
+            today = fields.Date.today()
+            date_str = today.strftime('%d%m%y')
+            _logger.info(f"Date string: {date_str}")
+            
+            # Get the next sequence number for today
+            sequence_code = 'parent.lot.daily.sequence'
+            seq_number = self.env['ir.sequence'].next_by_code(sequence_code)
+            _logger.info(f"Sequence number: {seq_number}")
+            
+            if not seq_number:
+                _logger.error("Sequence not found!")
+                return f"{abbreviation}-{date_str}-ERROR"  # Return something rather than None
+            
+            # Format: ABBR-DDMMYY-XXXX (e.g., ABC-161025-0001)
+            lot_name = f"{abbreviation}-{date_str}-{seq_number}"
+            _logger.info(f"Final lot name: {lot_name}")
+            return lot_name
+            
+        except Exception as e:
+            _logger.error(f"Error generating lot name: {e}")
+            return f"ERR-{fields.Date.today().strftime('%d%m%y')}-001"  # Fallback name
+    
+    
 
     @api.onchange('product_id')
     def _onchange_product_id_generate_lot(self):

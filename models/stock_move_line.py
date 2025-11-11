@@ -136,3 +136,60 @@ class StockMoveLine(models.Model):
                 if custom_lot_name:
                     record.lot_name = custom_lot_name
                     _logger.info(f"Fixed lot_name for record {record.id}: {custom_lot_name}")
+
+
+
+
+
+
+
+    # def _action_done(self):
+    #     """Override to capture arrived quantity when receiving"""
+    #     res = super(StockMoveLine, self)._action_done()
+        
+    #     # For each move line with a lot, update arrived_quantity if not set
+    #     for move_line in self:
+    #         if (move_line.lot_id and 
+    #             not move_line.lot_id.arrived_quantity and 
+    #             move_line.qty_done > 0 and
+    #             move_line.location_dest_id.usage == 'internal' and
+    #             move_line.location_id.usage in ['supplier', 'production']):
+                
+    #             # This is the first receipt of this lot
+    #             move_line.lot_id.set_arrived_quantity(move_line.qty_done)
+                
+    #     return res
+
+    # def write(self, vals):
+    #     """Override write to capture quantity when lot is assigned to existing move line"""
+    #     # Before calling super, check if we're setting a lot_id with qty_done
+    #     for record in self:
+    #         if (vals.get('lot_id') and 
+    #             (vals.get('qty_done', 0) > 0 or record.qty_done > 0) and
+    #             record.location_dest_id and record.location_dest_id.usage == 'internal' and
+    #             record.location_id and record.location_id.usage in ['supplier', 'production']):
+                
+    #             # Get the lot being assigned
+    #             lot = self.env['stock.lot'].browse(vals['lot_id']) if vals.get('lot_id') else record.lot_id
+    #             qty = vals.get('qty_done', record.qty_done)
+                
+    #             if lot and not lot.arrived_quantity and qty > 0:
+    #                 lot.set_arrived_quantity(qty)
+
+    #     return super(StockMoveLine, self).write(vals)
+
+    # @api.model
+    # def create(self, vals):
+    #     """Override create to capture arrived quantity for new move lines"""
+    #     move_line = super(StockMoveLine, self).create(vals)
+        
+    #     # Check if this is a receiving move line with a lot
+    #     if (move_line.lot_id and 
+    #         move_line.qty_done > 0 and
+    #         move_line.location_dest_id.usage == 'internal' and
+    #         move_line.location_id.usage in ['supplier', 'production']):
+            
+    #         if not move_line.lot_id.arrived_quantity:
+    #             move_line.lot_id.set_arrived_quantity(move_line.qty_done)
+        
+    #     return move_line

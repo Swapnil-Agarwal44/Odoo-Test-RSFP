@@ -336,12 +336,12 @@ class CustomSortingReport(models.Model):
 
                 # if want to convert the process in which the parent lot quantity also has to be reduced after sorting, just uncomment the below code. 
                 # Reduce parent lot quantity
-                # self.env['stock.quant']._update_available_quantity(
-                #     self.product_id,
-                #     stock_location,
-                #     -qty,
-                #     lot_id=self.parent_lot_id
-                # )
+                self.env['stock.quant']._update_available_quantity(
+                    self.product_id,
+                    stock_location,
+                    -qty,
+                    lot_id=self.parent_lot_id
+                )
 
                 created_lots.append(child_lot_name)
 

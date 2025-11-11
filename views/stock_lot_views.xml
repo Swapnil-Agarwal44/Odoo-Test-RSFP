@@ -45,6 +45,30 @@
             </field>
         </record>
 
+        <!-- 2. Form View Inheritance: Arrived Quantity field -->
+        <record id="view_production_lot_form_inherit_arrived_qty" model="ir.ui.view">
+            <field name="name">stock.lot.form.inherit.arrived.qty</field>
+            <field name="model">stock.lot</field>
+            <field name="inherit_id" ref="stock.view_production_lot_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Add arrived quantity field after product_id (Product field) -->
+                <xpath expr="//field[@name='product_id']" position="after">
+                    <!-- Removed 'invisible' condition to ensure it is always shown, as per previous discussion. -->
+                    <field name="arrived_quantity" readonly="1" 
+                            widget="float" 
+                            decoration-info="arrived_quantity > 0"/>
+                    <button name="action_set_arrived_quantity" 
+                            type="object" 
+                            string="Set Arrived Quantity"
+                            class="btn btn-link"
+                            invisible="arrived_quantity > 0"
+                            help="Set arrived quantity to current on-hand quantity"/>
+                </xpath>
+                
+            </field>
+        </record>
+
         <!-- Tree view enhancement to show parent lot -->
         <record id="view_production_lot_tree_inherit" model="ir.ui.view">
             <field name="name">stock.lot.tree.inherit.parent.lot</field>
