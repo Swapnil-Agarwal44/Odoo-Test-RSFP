@@ -39,9 +39,22 @@ class StockMoveLine(models.Model):
         return res
     
 
-    # NEW: Override write method to handle existing records
     def write(self, vals):
-        """Override write to set lot_name for existing records that don't have it"""
+        """Override write to set lot_name for existing records and handle arrived_quantity"""
+        # Handle arrived_quantity before the main write operation
+        if 'qty_done' in vals:
+            for record in self:
+                if (record.lot_id and vals.get('qty_done', 0) > 0 and 
+                    record.location_dest_id.usage == 'internal'):
+                    # This is a receipt - set arrived_quantity if needed
+                    try:
+                        record.lot_id._set_arrived_quantity_if_needed(vals['qty_done'])
+                    except Exception as e:
+                        _logger.warning(f"Failed to set arrived_quantity for lot {record.lot_id.name}: {e}")
+        
+        result = super(StockMoveLine, self).write(vals)
+        
+        # Original logic for lot_name generation
         for record in self:
             # Check if this is an existing record without lot_name but with product_id
             if (not record.lot_name and 
@@ -53,10 +66,10 @@ class StockMoveLine(models.Model):
                 _logger.info(f"Auto-generating lot_name for existing record: {record.id}")
                 custom_lot_name = self._generate_lot_name_for_product(record.product_id.id)
                 if custom_lot_name:
-                    vals['lot_name'] = custom_lot_name
+                    record.lot_name = custom_lot_name
                     _logger.info(f"Auto-set lot_name to: {custom_lot_name}")
         
-        return super(StockMoveLine, self).write(vals)
+        return result
 
     @api.model
     def create(self, vals):

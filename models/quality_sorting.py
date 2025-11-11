@@ -318,8 +318,10 @@ class CustomSortingReport(models.Model):
                     _logger.warning(f"No graded product found for grade {grade_letter}")
                     continue
 
-                # Create child lot
-                child_lot = self.env['stock.lot'].create({
+                # Create child lot with arrived_quantity context
+                child_lot = self.env['stock.lot'].with_context(
+                    arrived_quantity=qty
+                ).create({
                     'name': child_lot_name,
                     'product_id': graded_product.id,
                     'ref': parent_lot_name,

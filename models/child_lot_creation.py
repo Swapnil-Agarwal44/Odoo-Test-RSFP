@@ -329,8 +329,10 @@ class CustomChildLotCreation(models.Model):
             # Use same product as parent lot (graded product)
             target_product = self.product_id
 
-            # Create child lot
-            child_lot = self.env['stock.lot'].create({
+            # Create child lot with arrived_quantity context
+            child_lot = self.env['stock.lot'].with_context(
+                arrived_quantity=line.quantity
+            ).create({
                 'name': child_lot_name,
                 'product_id': target_product.id,
                 'ref': self.root_parent_lot_id.name if self.root_parent_lot_id else parent_lot_name,

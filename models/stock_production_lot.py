@@ -20,35 +20,18 @@ class StockLot(models.Model):
         help="The parent lot from which this child lot was created during quality grading"
     )
 
-    # NEW: Arrived quantity field
+    # Arrived quantity field - captures initial quantity when lot was created
     arrived_quantity = fields.Float(
         string='Arrived Quantity',
         readonly=True,
         digits='Product Unit of Measure',
-        help="Initial quantity when the lot was first created/received",
+        help="Initial quantity when the lot was first created/received - remains constant",
         copy=False
     )
 
-
-    #second attempt: 
-    @api.depends('product_qty')
-    def _compute_arrived_quantity(self):
-        """Compute arrived quantity from current quantity if not manually set"""
-        for lot in self:
-            # Only set if not already set and we have quantity
-            if not lot.arrived_quantity and lot.product_qty > 0:
-                lot.arrived_quantity = lot.product_qty
-
-    # Add a button to set arrived quantity manually
-    def action_set_arrived_quantity(self):
-        """Manually set arrived quantity to current quantity"""
-        for lot in self:
-            if lot.product_qty > 0:
-                lot.arrived_quantity = lot.product_qty
-
     @api.model
     def create(self, vals):
-        """Override create to inject custom lot name if not provided"""
+        """Override create to inject custom lot name and set initial arrived_quantity"""
         _logger.info("=== LOT CREATE METHOD CALLED ===")
         _logger.info(f"Values: {vals}")
         _logger.info(f"Context: {self._context}")
@@ -85,16 +68,87 @@ class StockLot(models.Model):
             _logger.error("Super create returned None - this should not happen!")
             raise ValueError("Failed to create lot record")
         
-        # NEW: Auto-populate arrived_quantity with current quantity if not set
+        # Set initial arrived_quantity based on context or initial quantity
         try:
-            if lot.product_qty and not lot.arrived_quantity:
-                lot.sudo().write({'arrived_quantity': lot.product_qty})
-                _logger.info(f"Set arrived_quantity to {lot.product_qty} for lot {lot.name}")
+            initial_qty = self._get_initial_quantity_for_lot(lot, vals)
+            if initial_qty > 0 and not lot.arrived_quantity:
+                lot.sudo().write({'arrived_quantity': initial_qty})
+                _logger.info(f"Set arrived_quantity to {initial_qty} for lot {lot.name}")
         except Exception as e:
             _logger.warning(f"Could not set arrived_quantity for lot {lot.name}: {e}")
         
         # ALWAYS return the lot record
         return lot
+    
+    def _get_initial_quantity_for_lot(self, lot, vals):
+        """Determine the initial quantity for a newly created lot"""
+        _logger.info(f"=== Getting initial quantity for lot: {lot.name} ===")
+        
+        # 1. Check if quantity specified in context (for child lots)
+        context_qty = self._context.get('arrived_quantity') or self._context.get('initial_quantity')
+        if context_qty and context_qty > 0:
+            _logger.info(f"Found quantity in context: {context_qty}")
+            return context_qty
+        
+        # 2. Check current product_qty (for immediate stock creation scenarios)
+        if lot.product_qty > 0:
+            _logger.info(f"Using current product_qty: {lot.product_qty}")
+            return lot.product_qty
+        
+        # For manual creation without immediate stock, return 0
+        # The quantity will be set when the first stock move is processed
+        _logger.info("No initial quantity found, will be set on first stock move")
+        return 0.0
+    
+    def _set_arrived_quantity_if_needed(self, quantity):
+        """Set arrived_quantity if not already set and this is the first quantity assignment"""
+        self.ensure_one()
+        if not self.arrived_quantity and quantity > 0:
+            # Use sudo to ensure we can write even if the field is readonly
+            self.sudo().write({'arrived_quantity': quantity})
+            _logger.info(f"Auto-set arrived_quantity to {quantity} for lot {self.name}")
+            return True
+        elif self.arrived_quantity:
+            _logger.debug(f"Lot {self.name} already has arrived_quantity set to {self.arrived_quantity}")
+        return False
+    
+    @api.model
+    def _migrate_existing_lots_arrived_quantity(self):
+        """Migration method to set arrived_quantity for existing lots"""
+        _logger.info("=== MIGRATING EXISTING LOTS ===")
+        
+        # Find all lots without arrived_quantity
+        lots_without_arrived_qty = self.search([
+            ('arrived_quantity', '=', 0),
+            ('product_qty', '>', 0)
+        ])
+        
+        _logger.info(f"Found {len(lots_without_arrived_qty)} lots without arrived_quantity")
+        
+        for lot in lots_without_arrived_qty:
+            try:
+                # For existing lots, use current product_qty as arrived_quantity
+                # This represents the best available data for existing lots
+                lot.sudo().write({'arrived_quantity': lot.product_qty})
+                _logger.info(f"Migrated lot {lot.name}: set arrived_quantity to {lot.product_qty}")
+            except Exception as e:
+                _logger.error(f"Failed to migrate lot {lot.name}: {e}")
+        
+        _logger.info("=== MIGRATION COMPLETE ===")
+    
+    def action_manual_migration(self):
+        """Manual action to run migration for existing lots (can be called from UI)"""
+        self._migrate_existing_lots_arrived_quantity()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Migration Complete',
+                'message': 'Arrived quantity has been updated for existing lots.',
+                'type': 'success',
+                'sticky': False,
+            }
+        }
     
     def action_view_parent_lot(self):
         """Action to view the parent lot"""
@@ -265,3 +319,12 @@ class StockLot(models.Model):
             info['tested_date'] = quality_report.testing_date.strftime('%d/%m/%Y') if quality_report.testing_date else 'N/A'
         
         return info
+    
+    @api.model
+    def action_set_arrived_quantity(self):
+        """
+        PLACEHOLDER: Defines the action mentioned in the traceback to allow XML validation.
+        This method should handle setting the arrived_quantity field, perhaps via a wizard.
+        For now, we define it to prevent the server error.
+        """
+        raise UserError("The method 'action_set_arrived_quantity' is called but not fully implemented yet.")
