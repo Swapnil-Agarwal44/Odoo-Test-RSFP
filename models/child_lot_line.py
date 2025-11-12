@@ -1,5 +1,5 @@
-from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo import models, fields, api, _ # type: ignore
+from odoo.exceptions import ValidationError # type: ignore
 import logging
 
 _logger = logging.getLogger(__name__)

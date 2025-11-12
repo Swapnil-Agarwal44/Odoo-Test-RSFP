@@ -4,7 +4,7 @@ from . import models
 
 def post_init_hook(cr, registry):
     """Post-installation hook to migrate existing lots"""
-    from odoo.api import Environment
+    from odoo.api import Environment # type: ignore
     import logging
     
     _logger = logging.getLogger(__name__)
