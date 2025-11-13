@@ -7,17 +7,18 @@ class StockQuant(models.Model):
     _inherit = 'stock.quant'
     
     @api.model
-    def _update_available_quantity(self, product_id, location_id, quantity, lot_id=None, package_id=None, owner_id=None, in_date=None):
+    def _update_available_quantity(self, product_id, location_id, quantity=0, lot_id=None, package_id=None, owner_id=None, in_date=None, reserved_quantity=0):
         """Override to set arrived_quantity when first adding stock to a lot"""
         
         # Call the original method first
         result = super(StockQuant, self)._update_available_quantity(
             product_id, location_id, quantity, lot_id=lot_id, 
-            package_id=package_id, owner_id=owner_id, in_date=in_date
+            package_id=package_id, owner_id=owner_id, in_date=in_date,
+            reserved_quantity=reserved_quantity
         )
         
         # If we have a lot_id and this is a positive quantity addition
-        if lot_id and quantity > 0 and location_id.usage == 'internal':
+        if lot_id and quantity > 0 and hasattr(location_id, 'usage') and location_id.usage == 'internal':
             try:
                 # Check if this is the first quantity assignment to the lot
                 if hasattr(lot_id, '_set_arrived_quantity_if_needed'):
