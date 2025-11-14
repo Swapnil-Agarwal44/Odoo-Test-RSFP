@@ -49,6 +49,8 @@
 
         'reports/child_lot_creation_templates.xml',
 
+        'data/warehouse_data.xml', 
+
 
     ],
     'assets': {
