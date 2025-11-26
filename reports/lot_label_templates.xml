@@ -55,35 +55,31 @@
                                 
                             </t>
                             <t t-else="">
-                                <h6 style="margin-bottom: 5px; color: #d2691e; font-weight: bold; font-size: 10px;">CHILD LOT</h6>
-                                
                                 <div style="margin-bottom: 8px; text-align: center;">
                                     <img t-att-src="request.httprequest.url_root + 'report/barcode/Code128/%s' % lot.name" 
                                         style="max-width: 90%; height: 40px; width: 100%;" 
                                         alt="Barcode"/>
                                 </div>
-                                
-                                <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #000;">
+                                <div style="font-weight: bold; font-size: 20px; margin-bottom: 10px;">
                                     <span t-field="lot.name"/>
                                 </div>
-                                
-                                <div style="font-size: 9px;">
-                                    <strong>Prod:</strong> <span t-field="lot.product_id.name"/><br/>
-                                    <strong>Parent:</strong> <span t-field="lot.parent_lot_id.name"/>
+                                <div style="font-size: 14px; margin-bottom: 8px;">
+                                    Product: <span t-field="lot.product_id.name"/>
                                 </div>
-                                
+                                <div style="font-size: 14px; margin-bottom: 8px;">
+                                    Parent Lot: <span t-field="lot.parent_lot_id.name"/>
+                                </div>
+                                <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                                    Qty: <span t-field="lot.product_qty"/>
+                                    <span t-field="lot.product_uom_id.name"/>
+                                </div>
                                 <t t-set="processing_info" t-value="lot._get_processing_info()"/>
                                 <t t-if="processing_info">
-                                    <div style="font-size: 7px; border-top: 1px solid #ccc; padding-top: 3px; margin-top: 5px; **text-align: center;**">
-                                        <strong>Sorted:</strong> <span t-esc="processing_info.get('sorted_date', 'N/A')"/>
+                                    <div style="font-size: 12px; color: #666;">
+                                        Sorted: <span t-esc="processing_info.get('sorted_date', 'N/A')"/> |
+                                        Sorting Report: <span t-esc="processing_info.get('sorting_report_name', 'N/A')"/>
                                     </div>
                                 </t>
-
-                                <div style="font-size: 8px; color: #666; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 8px;">
-                                    <strong>Created:</strong> <span t-esc="context_timestamp(lot.create_date).strftime('%d/%m/%Y %H:%M')"/><br/>
-                                    <span style="font-style: italic;">Graded Product Ready for Sale</span>
-                                </div>
-                                
                             </t>
                             
                         </div>

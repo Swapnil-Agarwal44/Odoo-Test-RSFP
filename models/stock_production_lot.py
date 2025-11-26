@@ -297,7 +297,8 @@ class StockLot(models.Model):
         
         info = {
             'sorted_date': 'N/A',
-            'tested_date': 'N/A'
+            'tested_date': 'N/A',
+            'sorting_report_name': 'N/A',  
         }
         
         # Get sorting information
@@ -308,6 +309,7 @@ class StockLot(models.Model):
         
         if sorting_report:
             info['sorted_date'] = sorting_report.sorting_date.strftime('%d/%m/%Y') if sorting_report.sorting_date else 'N/A'
+            info['sorting_report_name'] = sorting_report.name  # Set the report name
         
         # Get quality testing information
         quality_report = self.env['custom.quality.report'].search([
