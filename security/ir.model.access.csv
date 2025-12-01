@@ -6,3 +6,4 @@ access_quality_report_image_user,Quality Report Image User,model_custom_quality_
 access_child_lot_creation_user,Child Lot Creation User,model_custom_child_lot_creation,base.group_user,1,1,1,1
 access_child_lot_line_user,Child Lot Line User,model_custom_child_lot_line,base.group_user,1,1,1,1
 access_sequence_date_range_stock,sequence.date.range.stock,base.model_ir_sequence_date_range,stock.group_stock_user,1,1,1,0
+access_lot_label_wizard,Access Lot Label Print Wizard,model_lot_label_wizard,base.group_user,1,1,1,1

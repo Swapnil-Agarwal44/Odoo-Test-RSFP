@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_lot_label_wizard_form" model="ir.ui.view">
+            <field name="name">lot.label.wizard.form</field>
+            <field name="model">lot.label.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Print Lot Labels">
+                    <group>
+                        <field name="lot_ids" widget="many2many_tags" readonly="1"/>
+                        <field name="label_count"/>
+                    </group>
+                    <footer>
+                        <button name="action_print_labels" string="Print Labels" type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_lot_label_wizard" model="ir.actions.act_window">
+            <field name="name">Print Lot Labels</field>
+            <field name="res_model">lot.label.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>
