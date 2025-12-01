@@ -32,6 +32,8 @@ class LotLabelWizard(models.TransientModel):
             raise UserError(_("No lots selected for printing"))
         
         # Pass the label count to the report context
-        return self.env.ref('custom_rsfp_module.action_report_lot_label').with_context(
-            label_count=self.label_count
+        return self.env.ref('custom_rsfp_module.action_report_lot_label_custom').with_context(
+            label_count=self.label_count,
+            # (Optional but recommended) Explicitly expose range to QWeb context
+            range=range,
         ).report_action(self.lot_ids)

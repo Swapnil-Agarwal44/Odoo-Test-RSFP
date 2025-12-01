@@ -1,28 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="0">
+
         <!-- 
-            Fix for: AssertionError: Element odoo has extra content: data.
-            Ensure everything is wrapped in a single <data> tag.
+            1. Custom Report Action (Target of the Python Wizard)
+            This is a unique ID in our module to avoid conflict.
         -->
-        
-        <!-- 1. Remove the default lot label report to avoid conflicts (ID stock.action_report_lot_label) -->
-        <delete model="ir.actions.report" id="stock.action_report_lot_label"/>
-        
-        <!-- 2. Create our custom report action (for the wizard to use) -->
-        <record id="action_report_lot_label" model="ir.actions.report">
-            <field name="name">Lot/Serial Number Labels</field>
+        <record id="action_report_lot_label_custom" model="ir.actions.report">
+            <field name="name">Print Labels (Custom Quantity)</field>
             <field name="model">stock.lot</field>
             <field name="report_type">qweb-pdf</field>
-            <!-- IMPORTANT: Use your correct module name here -->
             <field name="report_name">custom_rsfp_module.custom_lot_label_template</field>
             <field name="report_file">custom_rsfp_module.custom_lot_label_template</field>
-            <field name="print_report_name">'Lot Label - %s' % object.name</field>
+            <field name="print_report_name">'Custom Lot Label - %s' % object.name</field>
         </record>
 
-        <!-- 3. Server action to replace the print button with wizard -->
-        <record id="action_lot_label_print_wizard" model="ir.actions.server">
-            <field name="name">Print Lot/Serial Labels</field>
+        <!-- 
+            2. Custom Server Action (The contextual button in the "Action" menu)
+            This action launches the custom label quantity selection wizard.
+        -->
+        <record id="action_launch_custom_lot_label_wizard" model="ir.actions.server">
+            <field name="name">Print Labels (Select Quantity)</field>
             <field name="model_id" ref="stock.model_stock_lot"/>
             <field name="binding_model_id" ref="stock.model_stock_lot"/>
             <field name="binding_type">action</field>
@@ -30,6 +28,7 @@
             <field name="code">
 records = model.browse(env.context.get('active_ids'))
 if records:
+    # IMPORTANT: The wizard action must exist and be named 'action_lot_label_wizard'
     action = env.ref('custom_rsfp_module.action_lot_label_wizard').read()[0]
     action['context'] = {'default_lot_ids': [(6, 0, records.ids)]}
     action['target'] = 'new'
@@ -37,7 +36,7 @@ if records:
             </field>
         </record>
 
-        <!-- 4. Template with multiple label support (The QWeb content remains the same) -->
+        <!-- 3. Template with multiple label support (The QWeb content remains the same) -->
         <template id="custom_lot_label_template">
             <t t-call="web.html_container">
                 <t t-set="label_count" t-value="context.get('label_count', 1)"/>
