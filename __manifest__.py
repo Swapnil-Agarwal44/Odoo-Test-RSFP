@@ -54,6 +54,8 @@
         'views/lot_label_wizard_views.xml',
 
         'reports/report_override.xml',
+
+        'views/custom_lot_label_button.xml',
     ],
     'assets': {
         'web.assets_backend': [

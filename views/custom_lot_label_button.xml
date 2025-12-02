@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- 
+            STEP A: Server Action Definition 
+            This action runs on the Stock Picking model (Receipts/Transfers).
+            It will collect the Lot IDs associated with the received products and pass them 
+            to the context to launch our existing custom Lot Label Wizard (stock.lot.label.layout).
+        -->
+        <record id="action_launch_lot_label_wizard_from_picking" model="ir.actions.server">
+            <field name="name">Print Custom Lot Labels (Picking)</field>
+            <field name="model_id" ref="stock.model_stock_picking"/>
+            <field name="binding_model_id" ref="stock.model_stock_picking"/>
+            <field name="groups_id" eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="state">code</field>
+            <field name="code">
+# Get all move lines for the current picking
+move_lines = env['stock.move.line'].search([('picking_id', 'in', records.ids), ('lot_id', '!=', False)])
+
+# Extract unique Lot IDs from the move lines
+lot_ids = move_lines.mapped('lot_id').ids
+
+if lot_ids:
+    # Action to open our custom Lot Label Wizard, passing the Lot IDs as active_ids
+    action = env.ref('custom_rsfp_module.action_launch_custom_lot_label_wizard').read()[0]
+    action['context'] = {'active_model': 'stock.lot', 'active_ids': lot_ids}
+    result = action
+else:
+    # If no lots are found on the picking, raise a warning
+    raise Warning('No Lot/Serial Numbers found on this transfer to print labels for.')
+            </field>
+        </record>
+
+        <!-- 
+            STEP B: Add Button to Stock Picking Form View 
+            This inherits the standard stock.picking form and adds the button.
+        -->
+        <record id="view_picking_form_add_custom_lot_label_button" model="ir.ui.view">
+            <field name="name">stock.picking.form.add.custom.lot.label.button</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Position the new button next to the standard print button group -->
+                <xpath expr="//header" position="inside">
+                    <button name="%(action_launch_lot_label_wizard_from_picking)d"
+                        string="Print Custom Lot Labels"
+                        type="action"
+                        class="btn-primary"
+                        invisible="state != 'done'"
+                        groups="stock.group_stock_user"
+                        help="Launches the wizard to print a custom quantity of Lot/SN labels for received products."/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
