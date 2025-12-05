@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Odoo
+*.db
+*.zip
+*.pot
+*.mo
+*.pyc
+*.swp
+*.swo
+*.bak
+*.tmp
+*.~*
+
+# IDEs/editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Node.js (if using static/js)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Static files
+static/src/js/*.min.js
+static/src/js/*.map
+
+# Misc
+.env
+*.sqlite3

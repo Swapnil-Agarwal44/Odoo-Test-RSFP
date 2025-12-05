@@ -7,3 +7,7 @@ access_child_lot_creation_user,Child Lot Creation User,model_custom_child_lot_cr
 access_child_lot_line_user,Child Lot Line User,model_custom_child_lot_line,base.group_user,1,1,1,1
 access_sequence_date_range_stock,sequence.date.range.stock,base.model_ir_sequence_date_range,stock.group_stock_user,1,1,1,0
 access_lot_label_wizard,Access Lot Label Print Wizard,model_lot_label_wizard,base.group_user,1,1,1,1
+access_ir_actions_server,Server Action User,base.model_ir_actions_server,base.group_user,1,0,0,0
+access_ir_model_read,IR Model Read Access for Users,base.model_ir_model,base.group_user,1,0,0,0
+access_ir_actions_act_window_read,IR Actions Window Read Access for Users,base.model_ir_actions_act_window,base.group_user,1,0,0,0
+access_ir_actions_act_window_view_read,IR Actions Window View Read Access for Users,base.model_ir_actions_act_window_view,base.group_user,1,0,0,0
