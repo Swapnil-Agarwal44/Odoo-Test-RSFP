@@ -44,3 +44,8 @@ static/src/js/*.map
 # Misc
 .env
 *.sqlite3
+
+# ignore local agent runtime files
+/tools/printer/printer_agent/__pycache__/
+/tools/printer/printer_agent/*.log
+/tools/printer/printer_agent/.env
