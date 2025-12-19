@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <data noupdate="0">
+    <odoo>
+        <data noupdate="0">
 
-        <!-- 
-            1. Custom Report Action (Target of the Python Wizard)
-            This is a unique ID in our module to avoid conflict.
-        -->
-        <record id="action_report_lot_label_custom" model="ir.actions.report">
-            <field name="name">Print Labels (Custom Quantity)</field>
-            <field name="model">stock.lot</field>
-            <field name="report_type">qweb-pdf</field>
-            <field name="report_name">custom_rsfp_module.custom_lot_label_template</field>
-            <field name="report_file">custom_rsfp_module.custom_lot_label_template</field>
-            <field name="print_report_name">'Custom Lot Label - %s' % object.name</field>
-        </record>
+            <!-- 
+                1. Custom Report Action (Target of the Python Wizard)
+                This is a unique ID in our module to avoid conflict.
+            -->
+            <record id="action_report_lot_label_custom" model="ir.actions.report">
+                <field name="name">Print Labels (Custom Quantity)</field>
+                <field name="model">stock.lot</field>
+                <field name="report_type">qweb-pdf</field>
+                <field name="report_name">custom_rsfp_module.custom_lot_label_template</field>
+                <field name="report_file">custom_rsfp_module.custom_lot_label_template</field>
+                <field name="print_report_name">'Custom Lot Label - %s' % object.name</field>
+            </record>
 
-        <!-- 
-            2. Custom Server Action (The contextual button in the "Action" menu)
-            This action launches the custom label quantity selection wizard.
-        -->
-        <record id="action_launch_custom_lot_label_wizard" model="ir.actions.server">
-            <field name="name">Print Labels (Select Quantity)</field>
-            <field name="model_id" ref="stock.model_stock_lot"/>
-            <field name="binding_model_id" ref="stock.model_stock_lot"/>
-            <field name="binding_type">action</field>
-            <field name="state">code</field>
-            <field name="code">
+            <!-- 
+                2. Custom Server Action (The contextual button in the "Action" menu)
+                This action launches the custom label quantity selection wizard.
+            -->
+            <record id="action_launch_custom_lot_label_wizard" model="ir.actions.server">
+                <field name="name">Print Labels (Select Quantity)</field>
+                <field name="model_id" ref="stock.model_stock_lot"/>
+                <field name="binding_model_id" ref="stock.model_stock_lot"/>
+                <field name="binding_type">action</field>
+                <field name="state">code</field>
+                <field name="code">
 records = model.browse(env.context.get('active_ids'))
 if records:
     # IMPORTANT: The wizard action must exist and be named 'action_lot_label_wizard'
@@ -33,92 +33,92 @@ if records:
     action['context'] = {'default_lot_ids': [(6, 0, records.ids)]}
     action['target'] = 'new'
     action = action 
-            </field>
-        </record>
+                </field>
+            </record>
 
-        <!-- 3. Template with multiple label support (The QWeb content remains the same) -->
-        <template id="custom_lot_label_template">
-            <t t-call="web.html_container">
-                <t t-set="label_count" t-value="context.get('label_count', 1)"/>
-                <t t-foreach="docs" t-as="lot">
-                    <!-- Repeat each lot label based on label_count -->
-                    <t t-foreach="range(label_count)" t-as="copy_index">
-                        <!-- Use page break to separate lot groups if preferred, or rely on flow -->
-                        <t t-if="copy_index > 0 and copy_index % 2 == 0">
-                            <!-- Add a page break if needed for better PDF grouping -->
-                        </t>
+            <!-- 3. Template with multiple label support (The QWeb content remains the same) -->
+            <template id="custom_lot_label_template">
+                <t t-call="web.html_container">
+                    <t t-set="label_count" t-value="context.get('label_count', 1)"/>
+                    <t t-foreach="docs" t-as="lot">
+                        <!-- Repeat each lot label based on label_count -->
+                        <t t-foreach="range(label_count)" t-as="copy_index">
+                            <!-- Use page break to separate lot groups if preferred, or rely on flow -->
+                            <t t-if="copy_index > 0 and copy_index % 2 == 0">
+                                <!-- Add a page break if needed for better PDF grouping -->
+                            </t>
 
-                        <div class="col-6 float-left" style="display: inline-block; width: 45%; padding: 5px; box-sizing: border-box;">
-                            
-                            <div style="border: 1px solid #000; padding: 10px; text-align: center; min-height: 150px; background-color: #f8f9fa; margin-bottom: 10px;">
+                            <div class="col-6 float-left" style="display: inline-block; width: 45%; padding: 5px; box-sizing: border-box;">
                                 
-                                <t t-if="not lot.parent_lot_id">
+                                <div style="border: 1px solid #000; padding: 10px; text-align: center; min-height: 150px; background-color: #f8f9fa; margin-bottom: 10px;">
                                     
-                                    <div style="margin-bottom: 8px; text-align: center;">
-                                        <img t-att-src="request.httprequest.url_root + 'report/barcode/Code128/%s' % lot.name" 
-                                            style="max-width: 90%; height: 40px; width: 100%;" 
-                                            alt="Barcode"/>
-                                    </div>
-                                    
-                                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #000;">
-                                        <span t-field="lot.name"/>
-                                    </div>
-                                    
-                                    <div style="font-size: 9px;">
-                                        <strong>Prod:</strong> <span t-field="lot.product_id.name"/><br/>
-                                        <strong>Qty:</strong> <span t-field="lot.product_qty"/> <span t-field="lot.product_uom_id.name"/>
-                                    </div>
-                                    
-                                    <t t-set="purchase_info" t-value="lot._get_purchase_order_info()"/>
-                                    <t t-if="purchase_info">
-                                        <div style="font-size: 7px; border-top: 1px solid #ccc; padding-top: 3px; margin-top: 5px; text-align: center;">
-                                            <strong>PO:</strong> <span t-esc="purchase_info.get('po_number', 'N/A')"/> | 
-                                            <strong>Vendor:</strong> <span t-esc="purchase_info.get('vendor', 'N/A')"/> |
-                                            <strong>Received:</strong> <span t-esc="purchase_info.get('received_date', 'N/A')"/>
+                                    <t t-if="not lot.parent_lot_id">
+                                        
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                            <img t-att-src="request.httprequest.url_root + 'report/barcode/Code128/%s' % lot.name" 
+                                                style="max-width: 90%; height: 40px; width: 100%;" 
+                                                alt="Barcode"/>
                                         </div>
-                                    </t>
+                                        
+                                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #000;">
+                                            <span t-field="lot.name"/>
+                                        </div>
+                                        
+                                        <div style="font-size: 9px;">
+                                            <strong>Prod:</strong> <span t-field="lot.product_id.name"/><br/>
+                                            <strong>Qty:</strong> <span t-field="lot.product_qty"/> <span t-field="lot.product_uom_id.name"/>
+                                        </div>
+                                        
+                                        <t t-set="purchase_info" t-value="lot._get_purchase_order_info()"/>
+                                        <t t-if="purchase_info">
+                                            <div style="font-size: 7px; border-top: 1px solid #ccc; padding-top: 3px; margin-top: 5px; text-align: center;">
+                                                <strong>PO:</strong> <span t-esc="purchase_info.get('po_number', 'N/A')"/> | 
+                                                <strong>Vendor:</strong> <span t-esc="purchase_info.get('vendor', 'N/A')"/> |
+                                                <strong>Received:</strong> <span t-esc="purchase_info.get('received_date', 'N/A')"/>
+                                            </div>
+                                        </t>
 
-                                    <div style="font-size: 8px; color: #666; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 8px;">
-                                        <strong>Created:</strong> <span t-esc="context_timestamp(lot.create_date).strftime('%d/%m/%Y %H:%M')"/><br/>
-                                        <span style="font-style: italic;">Ready for Sorting/Quality Testing</span>
-                                    </div>
-                                    
-                                </t>
-                                <t t-else="">
-                                    <!-- Child Lot Label -->
-                                    <div style="margin-bottom: 8px; text-align: center;">
-                                        <img t-att-src="request.httprequest.url_root + 'report/barcode/Code128/%s' % lot.name" 
-                                            style="max-width: 90%; height: 40px; width: 100%;" 
-                                            alt="Barcode"/>
-                                    </div>
-                                    <div style="font-weight: bold; font-size: 20px; margin-bottom: 10px;">
-                                        <span t-field="lot.name"/>
-                                    </div>
-                                    <div style="font-size: 14px; margin-bottom: 8px;">
-                                        Product: <span t-field="lot.product_id.name"/>
-                                    </div>
-                                    <div style="font-size: 14px; margin-bottom: 8px;">
-                                        Parent Lot: <span t-field="lot.parent_lot_id.name"/>
-                                    </div>
-                                    <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">
-                                        Qty: <span t-field="lot.product_qty"/>
-                                        <span t-field="lot.product_uom_id.name"/>
-                                    </div>
-                                    <t t-set="processing_info" t-value="lot._get_processing_info()"/>
-                                    <t t-if="processing_info">
-                                        <div style="font-size: 12px; color: #666;">
-                                            Sorted: <span t-esc="processing_info.get('sorted_date', 'N/A')"/> |
-                                            Sorting Report: <span t-esc="processing_info.get('sorting_report_name', 'N/A')"/>
+                                        <div style="font-size: 8px; color: #666; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 8px;">
+                                            <strong>Created:</strong> <span t-esc="context_timestamp(lot.create_date).strftime('%d/%m/%Y %H:%M')"/><br/>
+                                            <span style="font-style: italic;">Ready for Sorting/Quality Testing</span>
                                         </div>
+                                        
                                     </t>
-                                </t>
+                                    <t t-else="">
+                                        <!-- Child Lot Label -->
+                                        <div style="margin-bottom: 8px; text-align: center;">
+                                            <img t-att-src="request.httprequest.url_root + 'report/barcode/Code128/%s' % lot.name" 
+                                                style="max-width: 90%; height: 40px; width: 100%;" 
+                                                alt="Barcode"/>
+                                        </div>
+                                        <div style="font-weight: bold; font-size: 20px; margin-bottom: 10px;">
+                                            <span t-field="lot.name"/>
+                                        </div>
+                                        <div style="font-size: 14px; margin-bottom: 8px;">
+                                            Product: <span t-field="lot.product_id.name"/>
+                                        </div>
+                                        <div style="font-size: 14px; margin-bottom: 8px;">
+                                            Parent Lot: <span t-field="lot.parent_lot_id.name"/>
+                                        </div>
+                                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                                            Qty: <span t-field="lot.product_qty"/>
+                                            <span t-field="lot.product_uom_id.name"/>
+                                        </div>
+                                        <t t-set="processing_info" t-value="lot._get_processing_info()"/>
+                                        <t t-if="processing_info">
+                                            <div style="font-size: 12px; color: #666;">
+                                                Sorted: <span t-esc="processing_info.get('sorted_date', 'N/A')"/> |
+                                                Sorting Report: <span t-esc="processing_info.get('sorting_report_name', 'N/A')"/>
+                                            </div>
+                                        </t>
+                                    </t>
+                                    
+                                </div>
                                 
                             </div>
-                            
-                        </div>
+                        </t>
                     </t>
                 </t>
-            </t>
-        </template>
-    </data>
-</odoo>
+            </template>
+        </data>
+    </odoo>

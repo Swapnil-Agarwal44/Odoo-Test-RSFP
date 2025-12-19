@@ -60,6 +60,7 @@
     'assets': {
         'web.assets_backend': [
             'custom_rsfp_module/static/src/js/stock_move_line.js',
+            'custom_rsfp_module/static/src/js/zpl_printer.js',
         ],
     },
     

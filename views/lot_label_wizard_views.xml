@@ -12,6 +12,9 @@
                     </group>
                     <footer>
                         <button name="action_print_labels" string="Print Labels" type="object" class="btn-primary"/>
+                        <!-- New Thermal Print Button -->
+                        <button name="action_generate_zpl" string="Print Thermal Label" type="object" class="btn-primary"/>
+                    
                         <button string="Cancel" class="btn-secondary" special="cancel"/>
                     </footer>
                 </form>
