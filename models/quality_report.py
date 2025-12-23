@@ -138,6 +138,34 @@ class CustomQualityReport(models.Model):
         help="Percentage of moisture in the product"
     )
 
+    # New numeric measurements
+    ph_value = fields.Float(
+        string='pH',
+        digits=(6, 2),
+        help="pH value of the product",
+        default=0.0
+    )
+
+    brix_value = fields.Float(
+        string='Brix',
+        digits=(6, 2),
+        help="Brix (sugar content) measurement",
+        default=0.0
+    )
+
+    ash_content = fields.Float(
+        string='Ash Content (%)',
+        digits=(6, 2),
+        help="Ash content percentage",
+        default=0.0
+    )
+    acid_insoluble_ash = fields.Float(
+        string='Acid Insoluble Ash',
+        digits=(6, 2),
+        help="Acid insoluble ash (numeric, typically percentage)",
+        default=0.0
+    )
+
     # Images
     image_ids = fields.One2many(
         'custom.quality.report.image',

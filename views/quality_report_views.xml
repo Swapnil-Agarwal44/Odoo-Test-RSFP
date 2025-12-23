@@ -93,6 +93,14 @@
                                         <field name="aroma" readonly="state == 'confirmed'"/>
                                         <field name="moisture" readonly="state == 'confirmed'"/>
                                     </group>
+                                    <!-- new properties -->
+                                    <group string="Chemical Characteristics">
+                                        
+                                        <field name="ph_value" readonly="state == 'confirmed'"/>
+                                        <field name="brix_value" readonly="state == 'confirmed'"/>
+                                        <field name="ash_content" readonly="state == 'confirmed'"/>
+                                        <field name="acid_insoluble_ash" readonly="state == 'confirmed'"/>
+                                    </group>
                                 </group>
                                 
                                 <group>
