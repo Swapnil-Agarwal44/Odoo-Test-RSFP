@@ -96,26 +96,29 @@
                             <!-- Notes -->
                             <t t-if="doc.notes">
                                 <h4>Sorting Notes</h4>
-                                <div class="alert alert-info" role="alert">
+                                <!-- <div class="alert alert-info" role="alert">
                                     <p><span t-field="doc.notes"/></p>
+                                </div> -->
+                                <div class="alert alert-info" style="background:#f0f8ff; padding:10px; border:1px solid #cfe9ff;">
+                                    <p style="margin:0;"><span t-field="doc.notes"/></p>
                                 </div>
                             </t>
 
                             <!-- NEW: Parent Lot Barcode Label (on first page) -->
-                            <div class="mt-5">
+                            <!-- <div class="mt-5">
                                 <h4>Parent Lot Barcode Label</h4>
                                 <div class="row justify-content-center">
                                     <div class="col-8">
-                                        <div style="border: 2px solid #000; padding: 25px; text-align: center; margin-bottom: 30px;">
+                                        <div style="border: 2px solid #000; padding: 25px; text-align: center; margin-bottom: 30px;"> -->
                                             <!-- Parent Lot Barcode -->
-                                            <div style="margin-bottom: 15px;">
+                                            <!-- <div style="margin-bottom: 15px;">
                                                 <img t-att-src="'/report/barcode/Code128/%s?width=500&amp;height=120' % doc.parent_lot_id.name" 
                                                 style="max-width: 100%; height: auto;" 
                                                 alt="Parent Lot Barcode"/>
-                                            </div>
+                                            </div> -->
                                             
                                             <!-- Parent Lot Information -->
-                                            <div style="font-weight: bold; font-size: 18px; margin-bottom: 8px;">
+                                            <!-- <div style="font-weight: bold; font-size: 18px; margin-bottom: 8px;">
                                                 <span t-field="doc.parent_lot_id.name"/>
                                             </div>
                                             
@@ -141,7 +144,48 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div> -->
+
+                            <div class="mt-5">
+                            <h4>Parent Lot Barcode Label</h4>
+                            <div class="row justify-content-center">
+                                <div class="col-6">
+                                    <div style="border: 2px solid #000; padding: 15px; text-align: center; margin-bottom: 20px;">
+                                        <!-- Parent Lot Barcode -->
+                                        <div style="margin-bottom: 10px;">
+                                            <img t-att-src="'/report/barcode/Code128/%s?width=350&amp;height=80' % doc.parent_lot_id.name" 
+                                            style="max-width: 100%; height: auto;" 
+                                            alt="Parent Lot Barcode"/>
+                                        </div>
+                                        
+                                        <!-- Parent Lot Information -->
+                                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px;">
+                                            <span t-field="doc.parent_lot_id.name"/>
+                                        </div>
+                                        
+                                        <div style="font-size: 11px; margin-bottom: 5px;">
+                                            Product: <span t-field="doc.product_id.name"/>
+                                        </div>
+                                        
+                                        <div style="font-size: 11px; margin-bottom: 5px;">
+                                            Purchase Order: <span t-field="doc.purchase_order_id.name"/>
+                                        </div>
+                                        
+                                        <div style="font-size: 11px; font-weight: bold; margin-bottom: 5px;">
+                                            Total Quantity: <span t-field="doc.parent_qty_total"/> kg
+                                        </div>
+                                        
+                                        <div style="font-size: 10px; color: #666; margin-top: 8px;">
+                                            Sorted: <span t-field="doc.sorting_date"/> | Report: <span t-field="doc.name"/>
+                                        </div>
+                                        
+                                        <div style="font-size: 9px; color: #888; margin-top: 6px; font-style: italic;">
+                                            PARENT LOT - Before Sorting
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
 
                             <!-- Child Lot Labels (if confirmed) -->
                             <!-- FIXED: Child Lot Labels with proper page break logic -->
