@@ -85,6 +85,7 @@
                                 <field name="qty_grade_a" readonly="state == 'confirmed'"/>
                                 <field name="qty_grade_b" readonly="state == 'confirmed'"/>
                                 <field name="qty_grade_c" readonly="state == 'confirmed'"/>
+                                <field name="qty_grade_dc" readonly="state == 'confirmed'"/>
                                 <field name="qty_total_sorted" readonly="1" 
                                        decoration-success="qty_total_sorted == parent_qty_total"
                                        decoration-warning="qty_total_sorted != parent_qty_total"/>

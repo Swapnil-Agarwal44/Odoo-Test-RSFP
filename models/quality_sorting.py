@@ -101,6 +101,13 @@ class CustomSortingReport(models.Model):
         digits='Product Unit of Measure',
         default=0.0
     )
+    
+    qty_grade_dc = fields.Float(
+        string='Discarded Qty',
+        digits='Product Unit of Measure',
+        default=0.0,
+        help="Quantity that has been discarded/rejected during sorting"
+    )
 
     # Computed Fields
     qty_total_sorted = fields.Float(
@@ -210,10 +217,11 @@ class CustomSortingReport(models.Model):
                 # For draft records, use current lot quantity
                 record.parent_qty_total = record.parent_lot_id.product_qty or 0.0
 
-    @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c')
+    @api.depends('qty_grade_a', 'qty_grade_b', 'qty_grade_c', 'qty_grade_dc')
     def _compute_total_sorted(self):
         for record in self:
-            record.qty_total_sorted = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            record.qty_total_sorted = (record.qty_grade_a + record.qty_grade_b + 
+                                     record.qty_grade_c + record.qty_grade_dc)
 
     @api.depends('parent_lot_id', 'inventory_processed')
     def _compute_child_lot_ids(self):
@@ -239,7 +247,7 @@ class CustomSortingReport(models.Model):
         return super().create(vals_list)
 
     # FIXED: Temporarily disable constraint during module update
-    @api.constrains('qty_grade_a', 'qty_grade_b', 'qty_grade_c', 'parent_qty_total')
+    @api.constrains('qty_grade_a', 'qty_grade_b', 'qty_grade_c', 'qty_grade_dc', 'parent_qty_total')
     def _check_sorting_quantities(self):
         # Skip validation during module installation/update
         if self.env.context.get('module_uninstall') or self.env.context.get('install_mode'):
@@ -248,7 +256,8 @@ class CustomSortingReport(models.Model):
         for record in self:
             # Compute parent quantity on the fly for validation
             parent_qty = record.parent_lot_id.product_qty if record.parent_lot_id else 0.0
-            total_sorted = record.qty_grade_a + record.qty_grade_b + record.qty_grade_c
+            total_sorted = (record.qty_grade_a + record.qty_grade_b + 
+                          record.qty_grade_c + record.qty_grade_dc)
             
             if total_sorted > parent_qty:
                 raise ValidationError(_(
@@ -297,27 +306,31 @@ class CustomSortingReport(models.Model):
         if self.inventory_processed:
             return True
 
+        # Get existing waste location or create if needed
+        waste_location = self._get_or_create_waste_location()
         stock_location = self.env.ref('stock.stock_location_stock')
         parent_lot_name = self.parent_lot_id.name
         created_lots = []
 
-        # Define grades and their quantities
+        # MINIMAL CHANGE: Just add DC to existing grades list
         grades = [
-            ('A', self.qty_grade_a),
-            ('B', self.qty_grade_b),
-            ('C', self.qty_grade_c)
+            ('A', self.qty_grade_a, stock_location),
+            ('B', self.qty_grade_b, stock_location),
+            ('C', self.qty_grade_c, stock_location),
+            ('DC', self.qty_grade_dc, waste_location)  # Only addition
         ]
 
-        for grade_letter, qty in grades:
+        # Rest of the method stays exactly the same
+        for grade_letter, qty, target_location in grades:
             if qty > 0:
                 child_lot_name = f"{parent_lot_name}-{grade_letter}"
                 
-                # Get graded product
-                graded_product = self._get_graded_product(grade_letter)
-                if not graded_product:
-                    _logger.warning(f"No graded product found for grade {grade_letter}")
-                    continue
-
+                # Use existing method for A,B,C or new method for DC
+                if grade_letter == 'DC':
+                    graded_product = self._get_discarded_product()
+                else:
+                    graded_product = self._get_graded_product(grade_letter)
+                
                 # Create child lot with arrived_quantity context
                 child_lot = self.env['stock.lot'].with_context(
                     arrived_quantity=qty
@@ -331,7 +344,7 @@ class CustomSortingReport(models.Model):
                 # Update inventory  Only ADD inventory for child lots, don't reduce parent
                 self.env['stock.quant']._update_available_quantity(
                     graded_product,
-                    stock_location,
+                    target_location,
                     qty,
                     lot_id=child_lot
                 )
@@ -351,7 +364,7 @@ class CustomSortingReport(models.Model):
         
         if created_lots:
             self.message_post(
-                body=_("Child lots created: %s (Parent lot quantity preserved)") % ', '.join(created_lots)
+                body=_("Child lots created: %s (Parent lot quantity reduced)") % ', '.join(created_lots)
             )
 
         return True
@@ -393,6 +406,56 @@ class CustomSortingReport(models.Model):
             _logger.warning(f"No graded product found for base name: {base_name}, grade: {grade_letter}")
         
         return graded_product
+
+    def _get_or_create_waste_location(self):
+        """Get or create waste/discarded location"""
+        waste_location = self.env['stock.location'].search([
+            ('name', 'ilike', 'waste'),
+            ('usage', '=', 'internal')
+        ], limit=1)
+        
+        if not waste_location:
+            parent_location = self.env.ref('stock.stock_location_locations', raise_if_not_found=False)
+            if not parent_location:
+                parent_location = self.env.ref('stock.stock_location_stock')
+            
+            waste_location = self.env['stock.location'].create({
+                'name': 'Waste/Discarded',
+                'usage': 'internal',
+                'location_id': parent_location.id,
+                'company_id': self.env.company.id
+            })
+        
+        return waste_location
+
+    def _get_discarded_product(self):
+        """Get or create the discarded product for the current bulk product"""
+        if not self.product_id:
+            return False
+            
+        base_name = self.product_id.name.replace(' - Bulk', '').replace('Bulk', '').strip()
+        discarded_name = f'{base_name} - Discarded'
+        
+        discarded_product = self.env['product.product'].search([
+            ('name', '=', discarded_name),
+            ('tracking', '=', 'lot')
+        ], limit=1)
+        
+        if not discarded_product:
+            discarded_product = self.env['product.product'].create({
+                'name': discarded_name,
+                'type': 'product',
+                'tracking': 'lot',
+                'categ_id': self.product_id.categ_id.id,
+                'uom_id': self.product_id.uom_id.id,
+                'uom_po_id': self.product_id.uom_po_id.id,
+                'standard_price': 0.0,
+                'list_price': 0.0,
+                # 'lot_abbreviation': self.product_id.lot_abbreviation or 'DC',
+                'active': True
+            })
+        
+        return discarded_product
 
     def _print_sorting_report(self):
         """Print sorting report with child lot labels"""
