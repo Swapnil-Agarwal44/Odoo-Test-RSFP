@@ -47,6 +47,11 @@
                                                 <td style="padding: 8px; vertical-align: middle;">Pest Free:</td>
                                                 <td style="padding: 8px; vertical-align: middle;"><t t-esc="doc.pest_free and '✓ Yes' or '✗ No'"/></td>
                                             </tr>
+                                            <!-- Add a dummy empty row to prevent last-row styling -->
+                                            <tr style="height:0px; line-height:0; font-size:0;">
+                                                <td style="padding:0; border:none; height:0; line-height:0; visibility:hidden;"></td>
+                                                <td style="padding:0; border:none; height:0; line-height:0;"></td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -71,66 +76,21 @@
                                                 <td style="padding: 8px; vertical-align: middle;">Moisture (%):</td>
                                                 <td style="padding: 8px; vertical-align: middle;"><span t-field="doc.moisture"/>%</td>
                                             </tr>
+                                            <!-- Add a dummy empty row to prevent last-row styling -->
+                                            <tr style="height:0px; line-height:0; font-size:0;">
+                                                <td style="padding:0; border:none; height:0; line-height:0; visibility:hidden;"></td>
+                                                <td style="padding:0; border:none; height:0; line-height:0;"></td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                            
-                            <!-- <h4 class="mt-5" style="text-align: center;">Child Lot Barcode Label</h4>
-                            <div class="row justify-content-center mb-5">
-                                <div class="col-8">
-                                    <div style="border: 1px solid #000; padding: 20px; text-align: center;">
-                                        <div style="margin-bottom: 10px;">
-                                            <img t-att-src="'/report/barcode/Code128/%s?width=500&amp;height=100' % doc.child_lot_id.name" 
-                                            style="max-width: 90%; height: auto;" 
-                                            alt="Barcode"/>
-                                        </div>
-                                        
-                                        <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">
-                                            <span t-field="doc.child_lot_id.name"/>
-                                        </div>
-                                        
-                                        <div style="font-size: 12px;">
-                                            Product: <span t-field="doc.product_id.name"/> | Parent Lot: <span t-field="doc.parent_lot_id.name"/>
-                                        </div>
-                                        <div style="font-size: 12px; font-weight: bold; margin-top: 5px;">
-                                            Qty: <span t-field="doc.lot_qty_total"/> kg
-                                        </div>
-                                        
-                                        <div style="font-size: 10px; color: #666; margin-top: 10px;">
-                                            Tested: <span t-field="doc.testing_date"/> | Quality Report: <span t-field="doc.name"/>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> -->
 
                             <!-- CHEMICAL + BARCODE ROW -->
                             <div class="row" style="align-items:flex-start; margin-bottom:10px; margin-top:3rem;">
                                 <!-- CHEMICAL CHARACTERISTICS (left) - same visual style as top tables, kept narrow -->
                                 <div class="col-5" style="padding-right:6px;">
                                     <h5 style="margin:0 0 6px 0;">Chemical Characteristics</h5>
-                                    <!-- <table class="table table-sm table-bordered"
-                                        style="height:150px; border-collapse:collapse; font-size:12px; width:100%;">
-                                        <tbody>
-                                            <tr style="background-color:#f8f9fa; height:37.5px;">
-                                                <td style="width:58%; padding:8px; vertical-align:middle;">pH:</td>
-                                                <td style="padding:8px; vertical-align:middle;"><t t-esc="('%.2f' % (doc.ph_value or 0.0))"/></td>
-                                            </tr>
-                                            <tr style="height:37.5px;">
-                                                <td style="padding:8px; vertical-align:middle;">Brix:</td>
-                                                <td style="padding:8px; vertical-align:middle; text-align:right;"><t t-esc="('%.2f' % (doc.brix_value or 0.0))"/></td>
-                                            </tr>
-                                            <tr style="background-color:#f8f9fa; height:37.5px;">
-                                                <td style="padding:8px; vertical-align:middle;">Ash Content (%):</td>
-                                                <td style="padding:8px; vertical-align:middle; text-align:right;"><t t-esc="('%.2f' % (doc.ash_content or 0.0))"/>%</td>
-                                            </tr>
-                                            <tr style="height:37.5px;">
-                                                <td style="padding:8px; vertical-align:middle; font-weight:600; background:#111; color:#fff;">Acid Insoluble Ash (%):</td>
-                                                <td style="padding:8px; vertical-align:middle; font-weight:600; background:#111; color:#fff; text-align:right;"><t t-esc="('%.2f' % (doc.acid_insoluble_ash or 0.0))"/>%</td>
-                                            </tr>
-                                        </tbody>
-                                    </table> -->
-
                                     <table class="table table-sm table-bordered" style="height: 150px;">
                                         <tbody>
                                             <tr style="background-color: #f8f9fa; height: 37.5px;">
@@ -142,12 +102,20 @@
                                                 <td style="padding: 8px; vertical-align: middle;"><span t-field="doc.brix_value"/></td>
                                             </tr>
                                             <tr style="background-color: #f8f9fa; height: 37.5px;">
+                                            <!-- <tr style="background-color: #008000 !important; height: 37.5px;"> -->
                                                 <td style="padding: 8px; vertical-align: middle;">Ash Content:</td>
                                                 <td style="padding: 8px; vertical-align: middle;"><span t-field="doc.ash_content"/></td>
                                             </tr>
                                             <tr style="background-color: #f8f9fa; height: 37.5px;">
+                                            <!-- <tr style="background-color: #008000 !important; height: 37.5px;"> -->
                                                 <td style="padding: 8px; vertical-align: middle;">Acid Insoluble Ash:</td>
                                                 <td style="padding: 8px; vertical-align: middle;"><span t-field="doc.acid_insoluble_ash"/>%</td>
+                                            </tr>
+
+                                            <!-- Add a dummy empty row to prevent last-row styling -->
+                                            <tr style="height:0px; line-height:0; font-size:0;">
+                                                <td style="padding:0; border:none; height:0; line-height:0; visibility:hidden;"></td>
+                                                <td style="padding:0; border:none; height:0; line-height:0;"></td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -189,13 +157,6 @@
 
                             
                             <div style="page-break-before: always;"/>
-
-                            <!-- <t t-if="doc.notes">
-                                <h4 class="mt-3">Testing Notes</h4>
-                                <div class="alert alert-info" role="alert">
-                                    <p><span t-field="doc.notes"/></p>
-                                </div>
-                            </t> -->
 
                             <t t-if="doc.notes">
                                 <h4 style="margin-top:6px;">Testing Notes</h4>
