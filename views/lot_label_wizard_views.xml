@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    This file defines the form view for the Lot Label Print Wizard.
+    It provides the user interface for selecting lots and specifying the number of labels to print.
+    The wizard enables users to generate and print barcode labels for selected lots.
+-->
 <odoo>
     <data>
         <record id="view_lot_label_wizard_form" model="ir.ui.view">

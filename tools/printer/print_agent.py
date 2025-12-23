@@ -1,4 +1,10 @@
+# This is a print python agent, which needs to be stored in the client's device. This file gets the data from odoo, and forward it to the TSC TE244 printer if it's connected to the device through USB. 
+
+
+# before saving the file, install python, flask, flask_cors and win32py libraries
+
 # save this file in any of the permanent locations in the laptop
+
 # also save the start_printer.bat file in the desktop (remember the file should be saved as a .bat file, not .txt file). This file will now work as a start button to activate the TSC TE 244 printer if it's connected to the local system through USB. Just double click the file, and a log terminal will appears. Minimize it (don't close it, the printer will print as long as this terminal box is in process). To close the process, simply use the "ctrl + c" command. A confirmation line will appears, type "y" on the terminal and press enter. The dialog box will close. 
 
 from flask import Flask, request, jsonify

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- child lot creation template -->
 <odoo>
     <data>
         <record id="action_report_child_lot_creation_detail" model="ir.actions.report">

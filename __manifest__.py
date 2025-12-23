@@ -13,49 +13,37 @@
         'web',
     ],
     'data': [
+        # Security
         'security/ir.model.access.csv',
 
+        # Data (Sequences, Locations, Warehouses)
         'data/quality_sequence.xml',
+        'data/lot_sequence_data.xml',
+        'data/stock_locations_data.xml',
+        'data/warehouse_data.xml',
 
+        # Menus
         'views/quality_menu.xml',
 
-        'reports/custom_quality_report_templates.xml',
-
-        'views/purchase_order_views.xml', 
-
+        # Views
+        'views/purchase_order_views.xml',
         'views/product_template_views.xml',
-
-        'data/lot_sequence_data.xml', 
-
         'views/stock_lot_views.xml',
-
-        'data/stock_locations_data.xml',
-
-        'views/sorting_report_views.xml',  # NEW: Add this line
-
-        'views/quality_report_views.xml',  # NEW: Add this line
-
-        'views/sorting_report_action.xml',  # NEW: Add this
-
-        'views/quality_report_action.xml',  # NEW: Add this
-
-        'reports/sorting_report_templates.xml',  # ← ADD THIS LINE
-
-        'reports/quality_report_templates.xml',  # ← ADD THIS LINE
-        
-        'reports/lot_label_templates.xml',
-
+        'views/sorting_report_views.xml',
+        'views/quality_report_views.xml',
+        'views/sorting_report_action.xml',
+        'views/quality_report_action.xml',
         'views/child_lot_creation_views.xml',
-
-        'reports/child_lot_creation_templates.xml',
-
-        'data/warehouse_data.xml', 
-
         'views/lot_label_wizard_views.xml',
-
-        'reports/report_override.xml',
-
         'views/custom_lot_label_button.xml',
+
+        # Reports
+        'reports/custom_quality_report_templates.xml',
+        'reports/sorting_report_templates.xml',
+        'reports/quality_report_templates.xml',
+        'reports/lot_label_templates.xml',
+        'reports/child_lot_creation_templates.xml',
+        'reports/report_override.xml',
     ],
     'assets': {
         'web.assets_backend': [

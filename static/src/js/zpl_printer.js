@@ -3,6 +3,8 @@
 import { registry } from "@web/core/registry";
 import { browser } from "@web/core/browser/browser";
 
+// this javascript file will work as a medium between the odoo server and the client's python agent, sending the zpl data to the print agent, which will again forward it to the printer using the .bat file
+
 const zplPrintAction = async (env, action) => {
     const zplData = action.params.zpl_data;
     

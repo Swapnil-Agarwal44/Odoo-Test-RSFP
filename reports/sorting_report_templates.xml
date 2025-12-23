@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- sorting report template -->
 <odoo>
     <data>
         <template id="report_sorting_document_detail">
@@ -60,12 +61,7 @@
                                             <t t-else="">0.0%</t>
                                         </td>
                                     </tr>
-                                    <!-- <tr t-if="doc.qty_grade_c > 0">
-                                        <td><strong>Grade C</strong></td>
-                                        <td><span t-field="doc.qty_grade_c"/> <span t-field="doc.uom_id.name"/></td>
-                                        <td><span t-esc="'%.1f%%' % (doc.qty_grade_c / doc.parent_qty_total * 100 if doc.parent_qty_total > 0 else 0)"/></td>
-                                        <td><span t-esc="doc.parent_lot_id.name"/>-C</td>
-                                    </tr> -->
+                                    
                                     <tr t-if="doc.qty_grade_c > 0">
                                         <td><strong>Grade C</strong></td>
                                         <td class="text-right"><span t-field="doc.qty_grade_c"/></td>
@@ -77,18 +73,7 @@
                                             <t t-else="">0.0%</t>
                                         </td>
                                     </tr>
-                                    <!-- ADD ONLY THIS ONE ROW -->
-                                    <!-- <tr t-if="doc.qty_grade_dc > 0" class="table-warning">
-                                        <td><strong>Discarded</strong></td>
-                                        <td><span t-field="doc.qty_grade_dc"/> <span t-field="doc.uom_id.name"/></td>
-                                        <td>
-                                            <t t-if="doc.parent_qty_total > 0">
-                                                <t t-esc="round((doc.qty_grade_dc / doc.parent_qty_total) * 100, 1)"/>%
-                                            </t>
-                                            <t t-else="">0.0%</t>
-                                        </td>
-                                        <td><span t-esc="doc.parent_lot_id.name"/>-DC (Waste)</td>
-                                    </tr> -->
+                                    
                                     <tr t-if="doc.qty_grade_dc > 0">
                                         <td><strong>Discarded</strong></td>
                                         <td class="text-right"><span t-field="doc.qty_grade_dc"/></td>
