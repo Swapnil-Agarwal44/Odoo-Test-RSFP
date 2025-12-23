@@ -96,7 +96,7 @@ class LotLabelWizard(models.TransientModel):
                 
                 label_zpl += f"^FO{RIGHT_X},{BASE_Y}^A0N,{FONT_SIZE}^FB{RIGHT_WIDTH},1,0,L,0^FDQty: {qty_str}^FS"
                 label_zpl += f"^FO{RIGHT_X},{BASE_Y+35}^A0N,{FONT_SIZE}^FB{RIGHT_WIDTH},1,0,L,0^FDSorted: {proc_info.get('sorted_date', 'N/A')}^FS"
-                label_zpl += f"^FO{RIGHT_X},{BASE_Y+70}^A0N,{FONT_SIZE}^FB{RIGHT_WIDTH},1,0,L,0^FDReport: {proc_info.get('sorting_report_name', 'N/A')[:14]}^FS"
+                label_zpl += f"^FO{RIGHT_X},{BASE_Y+70}^A0N,{FONT_SIZE}^FB{RIGHT_WIDTH},1,0,L,0^FD{proc_info.get('sorting_report_name', 'N/A')[:14]}^FS"
 
             # --- SECTION 3: FOOTER (SHIFTED FROM 350 TO 250) ---
             footer_text = lot.parent_lot_id and "QUALITY TESTED & GRADED" or "BULK RAW MATERIAL"
