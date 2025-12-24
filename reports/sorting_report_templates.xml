@@ -96,9 +96,6 @@
                             <!-- Notes -->
                             <t t-if="doc.notes">
                                 <h4>Sorting Notes</h4>
-                                <!-- <div class="alert alert-info" role="alert">
-                                    <p><span t-field="doc.notes"/></p>
-                                </div> -->
                                 <div class="alert alert-info" style="background:#f0f8ff; padding:10px; border:1px solid #cfe9ff;">
                                     <p style="margin:0;"><span t-field="doc.notes"/></p>
                                 </div>
