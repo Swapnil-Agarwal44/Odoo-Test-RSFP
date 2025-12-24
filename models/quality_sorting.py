@@ -564,36 +564,71 @@ class CustomSortingReport(models.Model):
         
         _logger.info(f"=== FIXING INVENTORY FOR PARENT LOT: {self.parent_lot_id.name} ===")
         
-        # Find WH/Stock and DS/Stock locations
-        wh_stock = self.env['stock.location'].search([
-            ('complete_name', 'ilike', 'WH/Stock'),
-            ('usage', '=', 'internal')
-        ], limit=1)
+        # IMPROVED: Find the actual destination location from the parent lot's purchase order
+        target_location = self._get_parent_lot_destination_location()
         
-        ds_stock = self.env['stock.location'].search([
-            ('complete_name', 'ilike', 'DS/Stock'),
-            ('usage', '=', 'internal')
-        ], limit=1)
-        
-        if not wh_stock:
-            message = "WH/Stock location not found. Cannot proceed with fix."
-            self.message_post(body=_(message))
-            raise UserError(_(message))
-            
-        if not ds_stock:
-            message = "DS/Stock location not found. Cannot proceed with fix."
+        if not target_location:
+            message = f"Could not determine destination location for lot {self.parent_lot_id.name}. Cannot proceed with fix."
             self.message_post(body=_(message))
             raise UserError(_(message))
         
-        # Find negative quantities for this specific parent lot in WH/Stock
+        _logger.info(f"Target location for transfers: {target_location.complete_name}")
+        
+        # NEW: Only search in DS and PA locations (company locations)
+        company_locations = self.env['stock.location'].search([
+            '|',
+            ('complete_name', '=like', 'DS/%'),    # Locations starting with DS/
+            ('complete_name', '=like', 'PA/%'),    # Locations starting with PA/
+            ('usage', '=', 'internal')
+        ])
+        
+        if not company_locations:
+            message = "No DS or PA locations found. Cannot proceed with fix."
+            self.message_post(body=_(message))
+            raise UserError(_(message))
+        
+        _logger.info(f"Found {len(company_locations)} company locations: {', '.join(company_locations.mapped('complete_name'))}")
+        
+        # Find negative quantities for this parent lot in DS/PA locations only
         negative_quants = self.env['stock.quant'].search([
-            ('location_id', '=', wh_stock.id),
             ('lot_id', '=', self.parent_lot_id.id),
-            ('quantity', '<', 0)
+            ('quantity', '<', 0),
+            ('location_id', 'in', company_locations.ids)
         ])
         
         if not negative_quants:
-            message = f"No negative quantities found for lot {self.parent_lot_id.name} in WH/Stock."
+            _logger.info("No negative quantities found in DS/PA locations.")
+            
+            # NEW: Check if parent lot has negative on-hand quantity and this is a completed sorting report
+            if self.state == 'confirmed' and self.inventory_processed and self.parent_lot_id.product_qty < 0:
+                _logger.info(f"Parent lot has negative on-hand quantity: {self.parent_lot_id.product_qty}. Zeroing it out.")
+                
+                # Zero out the negative parent lot quantity
+                parent_quants = self.env['stock.quant'].search([
+                    ('lot_id', '=', self.parent_lot_id.id),
+                    ('quantity', '<', 0)
+                ])
+                
+                if parent_quants:
+                    total_negative = sum(parent_quants.mapped('quantity'))
+                    for quant in parent_quants:
+                        quant.sudo().write({'quantity': 0, 'reserved_quantity': 0})
+                    
+                    message = f"✅ Corrected negative parent lot quantity: Reset {abs(total_negative)} units to zero for completely sorted lot {self.parent_lot_id.name}."
+                    self.message_post(body=_(message))
+                    _logger.info(message)
+                    
+                    return {
+                        'type': 'ir.actions.client',
+                        'tag': 'display_notification',
+                        'params': {
+                            'title': 'Parent Lot Corrected',
+                            'message': f"Reset negative quantity to zero for sorted lot {self.parent_lot_id.name}.",
+                            'type': 'success',
+                        }
+                    }
+            
+            message = f"No negative quantities found for lot {self.parent_lot_id.name} in DS/PA locations."
             _logger.info(message)
             self.message_post(body=_(message))
             
@@ -607,7 +642,12 @@ class CustomSortingReport(models.Model):
                 }
             }
         
-        # Fix each negative quant for this lot
+        # Log the locations where we found negative quantities
+        negative_locations = negative_quants.mapped('location_id')
+        source_location_names = ', '.join(negative_locations.mapped('complete_name'))
+        _logger.info(f"Found negative quantities in DS/PA locations: {source_location_names}")
+        
+        # Fix each negative quant
         fixed_details = []
         total_fixed_qty = 0
         
@@ -615,49 +655,66 @@ class CustomSortingReport(models.Model):
             try:
                 negative_qty = quant.quantity  # e.g., -20.00
                 product_name = quant.product_id.name
+                source_location_name = quant.location_id.complete_name
                 
-                _logger.info(f"Fixing: {product_name}, Qty: {negative_qty}")
+                _logger.info(f"Fixing: {product_name}, Qty: {negative_qty} from {source_location_name} to {target_location.complete_name}")
                 
-                # STEP 1: Transfer negative quantity to DS/Stock (reduces DS/Stock quantity)
+                # STEP 1: Transfer negative quantity to target location (reduces target location quantity)
                 self.env['stock.quant']._update_available_quantity(
                     quant.product_id,
-                    ds_stock,
+                    target_location,
                     negative_qty,  # Add the negative quantity
                     lot_id=quant.lot_id
                 )
                 
-                # STEP 2: Remove negative quantity from WH/Stock (makes it zero)
+                # STEP 2: Remove negative quantity from source location (makes it zero)
                 self.env['stock.quant']._update_available_quantity(
                     quant.product_id,
-                    wh_stock,
+                    quant.location_id,  # Use the actual source location
                     -negative_qty,  # Remove the negative
                     lot_id=quant.lot_id
                 )
                 
-                fixed_details.append(f"• {product_name}: {abs(negative_qty)} units")
+                fixed_details.append(f"• {product_name}: {abs(negative_qty)} units from {source_location_name}")
                 total_fixed_qty += abs(negative_qty)
                 
-                _logger.info(f"Successfully fixed negative quantity for {product_name}")
+                _logger.info(f"Successfully fixed negative quantity for {product_name} from {source_location_name}")
                 
             except Exception as e:
-                error_msg = f"Failed to fix negative quantity for {quant.product_id.name}: {str(e)}"
+                error_msg = f"Failed to fix negative quantity for {quant.product_id.name} in {quant.location_id.complete_name}: {str(e)}"
                 _logger.error(error_msg)
                 self.message_post(body=_(f"❌ Error: {error_msg}"))
                 raise UserError(_(error_msg))
         
+        # NEW: After fixing negative quantities, check if parent lot still has negative on-hand and zero it out
+        if self.state == 'confirmed' and self.inventory_processed:
+            remaining_parent_quants = self.env['stock.quant'].search([
+                ('lot_id', '=', self.parent_lot_id.id),
+                ('quantity', '<', 0)
+            ])
+            
+            if remaining_parent_quants:
+                _logger.info("Zeroing out remaining negative parent lot quantities after transfer fix")
+                for quant in remaining_parent_quants:
+                    quant.sudo().write({'quantity': 0, 'reserved_quantity': 0})
+                fixed_details.append("• Parent lot negative quantities reset to zero")
+        
         # Log success message in chatter
         success_message = _(
             "✅ Inventory Mismatch Fixed:\n"
-            "Transferred negative quantities from WH/Stock to DS/Stock:\n%s\n"
-            "Total quantity corrected: %.2f %s"
+            "Transferred negative quantities to target location (%s):\n%s\n"
+            "Total quantity corrected: %.2f %s\n"
+            "Source locations (DS/PA only): %s"
         ) % (
+            target_location.complete_name,
             '\n'.join(fixed_details),
             total_fixed_qty,
-            self.parent_lot_id.product_uom_id.name
+            self.parent_lot_id.product_uom_id.name,
+            source_location_names
         )
         
         self.message_post(body=success_message)
-        _logger.info(f"Fix completed for lot {self.parent_lot_id.name}: {len(negative_quants)} records fixed")
+        _logger.info(f"Fix completed for lot {self.parent_lot_id.name}: {len(negative_quants)} records fixed from {len(negative_locations)} DS/PA locations")
         
         # Show success notification
         return {
@@ -665,8 +722,77 @@ class CustomSortingReport(models.Model):
             'tag': 'display_notification',
             'params': {
                 'title': 'Inventory Fix Completed',
-                'message': f"Successfully fixed inventory mismatch for lot {self.parent_lot_id.name}. Check the record's messages for details.",
+                'message': f"Successfully fixed inventory mismatch for lot {self.parent_lot_id.name}. Transferred from DS/PA locations to {target_location.complete_name}. Check the record's messages for details.",
                 'type': 'success',
             }
         }
 
+
+
+
+
+    def _get_parent_lot_destination_location(self):
+        """Get the destination location from the parent lot's purchase order"""
+        self.ensure_one()
+        
+        if not self.parent_lot_id:
+            return False
+        
+        _logger.info(f"Finding destination location for lot: {self.parent_lot_id.name}")
+        
+        # Method 1: Find through stock move lines (most accurate)
+        move_lines = self.env['stock.move.line'].search([
+            ('lot_id', '=', self.parent_lot_id.id),
+            ('state', '=', 'done'),
+            ('move_id.purchase_line_id', '!=', False)
+        ], limit=1)
+        
+        if move_lines:
+            destination_location = move_lines.location_dest_id
+            _logger.info(f"Found destination via move lines: {destination_location.complete_name}")
+            return destination_location
+        
+        # Method 2: Find through purchase order picking operations
+        if self.purchase_order_id:
+            po_pickings = self.purchase_order_id.picking_ids.filtered(lambda p: p.state == 'done')
+            for picking in po_pickings:
+                # Check if this picking involved our lot
+                picking_lot_move_lines = picking.move_line_ids.filtered(
+                    lambda ml: ml.lot_id == self.parent_lot_id
+                )
+                if picking_lot_move_lines:
+                    destination_location = picking_lot_move_lines[0].location_dest_id
+                    _logger.info(f"Found destination via PO pickings: {destination_location.complete_name}")
+                    return destination_location
+        
+        # Method 3: Find where the lot currently has positive inventory (fallback)
+        positive_quants = self.env['stock.quant'].search([
+            ('lot_id', '=', self.parent_lot_id.id),
+            ('quantity', '>', 0)
+        ], limit=1)
+        
+        if positive_quants:
+            fallback_location = positive_quants.location_id
+            _logger.info(f"Using fallback location (where positive inventory exists): {fallback_location.complete_name}")
+            return fallback_location
+        
+        # Method 4: Ultimate fallback - find any internal stock location
+        fallback_location = self.env['stock.location'].search([
+            ('usage', '=', 'internal'),
+            ('active', '=', True)
+        ], limit=1)
+        
+        if fallback_location:
+            _logger.warning(f"Using ultimate fallback location: {fallback_location.complete_name}")
+            return fallback_location
+        
+        _logger.error("No suitable destination location found")
+        return False
+
+
+
+
+
+
+
+    
