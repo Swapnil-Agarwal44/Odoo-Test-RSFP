@@ -308,16 +308,38 @@ class CustomSortingReport(models.Model):
 
         # Get existing waste location or create if needed
         waste_location = self._get_or_create_waste_location()
-        stock_location = self.env.ref('stock.stock_location_stock')
+        # stock_location = self.env.ref('stock.stock_location_stock')
+
+        # FIXED: Get the actual location where parent lot exists instead of hardcoded stock location
+        parent_stock_location = self._get_parent_lot_location()
+
+        # NEW: Use sorting location for child lots (where sorting actually happens)
+        sorting_location = self.sorting_location_id
+
         parent_lot_name = self.parent_lot_id.name
         created_lots = []
 
         # MINIMAL CHANGE: Just add DC to existing grades list
+        # grades = [
+        #     ('A', self.qty_grade_a, stock_location),
+        #     ('B', self.qty_grade_b, stock_location),
+        #     ('C', self.qty_grade_c, stock_location),
+        #     ('DC', self.qty_grade_dc, waste_location)  # Only addition
+        # ]
+
+        # grades = [
+        #     ('A', self.qty_grade_a, parent_stock_location),  # Use parent's location
+        #     ('B', self.qty_grade_b, parent_stock_location),  # Use parent's location
+        #     ('C', self.qty_grade_c, parent_stock_location),  # Use parent's location
+        #     ('DC', self.qty_grade_dc, waste_location)  # Only DC goes to waste location
+        # ]
+
+        # Child lots A, B, C go to sorting location; DC goes to waste location
         grades = [
-            ('A', self.qty_grade_a, stock_location),
-            ('B', self.qty_grade_b, stock_location),
-            ('C', self.qty_grade_c, stock_location),
-            ('DC', self.qty_grade_dc, waste_location)  # Only addition
+            ('A', self.qty_grade_a, sorting_location),      # Created where sorting happens
+            ('B', self.qty_grade_b, sorting_location),      # Created where sorting happens
+            ('C', self.qty_grade_c, sorting_location),      # Created where sorting happens
+            ('DC', self.qty_grade_dc, waste_location)       # Discarded items go to waste
         ]
 
         # Rest of the method stays exactly the same
@@ -351,9 +373,16 @@ class CustomSortingReport(models.Model):
 
                 # if want to convert the process in which the parent lot quantity also has to be reduced after sorting, just uncomment the below code. 
                 # Reduce parent lot quantity
+                # self.env['stock.quant']._update_available_quantity(
+                #     self.product_id,
+                #     stock_location,
+                #     -qty,
+                #     lot_id=self.parent_lot_id
+                # )
+
                 self.env['stock.quant']._update_available_quantity(
                     self.product_id,
-                    stock_location,
+                    parent_stock_location,  # Use the actual parent location, not hardcoded stock location
                     -qty,
                     lot_id=self.parent_lot_id
                 )
@@ -368,6 +397,33 @@ class CustomSortingReport(models.Model):
             )
 
         return True
+    
+    def _get_parent_lot_location(self):
+        """Get the location where parent lot inventory actually exists"""
+        self.ensure_one()
+        
+        # Find where the parent lot has inventory
+        quants = self.env['stock.quant'].search([
+            ('lot_id', '=', self.parent_lot_id.id),
+            ('quantity', '>', 0)
+        ], limit=1)
+        
+        if quants:
+            _logger.info(f"Parent lot {self.parent_lot_id.name} found in location: {quants.location_id.name}")
+            return quants.location_id
+        else:
+            # Fallback to DS/Stock if it exists, otherwise stock location
+            ds_stock = self.env['stock.location'].search([
+                ('complete_name', 'ilike', 'DS/Stock'),
+                ('usage', '=', 'internal')
+            ], limit=1)
+            
+            if ds_stock:
+                _logger.info(f"Using DS/Stock as fallback location")
+                return ds_stock
+            else:
+                _logger.warning("No DS/Stock found, using default stock location")
+                return self.env.ref('stock.stock_location_stock')
 
     def _get_graded_product(self, grade_letter):
         """Get the graded product for a specific grade"""
@@ -517,3 +573,384 @@ class CustomSortingReport(models.Model):
                 record.child_lot_names = ', '.join(record.child_lot_ids.mapped('name'))
             else:
                 record.child_lot_names = ''
+
+    
+
+
+
+
+
+
+
+    # inventory fix (temporarily)
+
+    # @api.model
+    # def fix_wh_stock_negative_quantities(self):
+    #     """Fix negative quantities in WH/Stock by transferring them to DS/Stock"""
+    #     _logger.info("=== STARTING WH/STOCK NEGATIVE QUANTITY FIX ===")
+        
+    #     # Find WH/Stock location
+    #     wh_stock = self.env['stock.location'].search([
+    #         ('complete_name', 'ilike', 'WH/Stock'),
+    #         ('usage', '=', 'internal')
+    #     ], limit=1)
+        
+    #     if not wh_stock:
+    #         _logger.warning("WH/Stock location not found, skipping fix")
+    #         return {'fixed_count': 0, 'errors': []}
+        
+    #     # Find DS/Stock location
+    #     ds_stock = self.env['stock.location'].search([
+    #         ('complete_name', 'ilike', 'DS/Stock'),
+    #         ('usage', '=', 'internal')
+    #     ], limit=1)
+        
+    #     if not ds_stock:
+    #         _logger.error("DS/Stock location not found, cannot proceed with fix")
+    #         return {'fixed_count': 0, 'errors': ['DS/Stock location not found']}
+        
+    #     # Find all negative quantity records in WH/Stock
+    #     negative_quants = self.env['stock.quant'].search([
+    #         ('location_id', '=', wh_stock.id),
+    #         ('quantity', '<', 0),
+    #         ('lot_id', '!=', False)
+    #     ])
+        
+    #     _logger.info(f"Found {len(negative_quants)} negative quantity records in WH/Stock")
+        
+    #     fixed_count = 0
+    #     errors = []
+        
+    #     for quant in negative_quants:
+    #         try:
+    #             lot_name = quant.lot_id.name
+    #             negative_qty = quant.quantity  # e.g., -20.00
+    #             product = quant.product_id
+                
+    #             _logger.info(f"Fixing lot {lot_name}: transferring {negative_qty} from WH/Stock to DS/Stock")
+                
+    #             # STEP 1: Add the negative quantity to DS/Stock (this will reduce DS/Stock quantity)
+    #             # If DS/Stock has +20.00 and we add -20.00, result will be 0.00
+    #             self.env['stock.quant']._update_available_quantity(
+    #                 product,
+    #                 ds_stock,
+    #                 negative_qty,  # Add the negative quantity (-20.00)
+    #                 lot_id=quant.lot_id
+    #             )
+                
+    #             # STEP 2: Remove the negative quantity from WH/Stock (make it zero)
+    #             # If WH/Stock has -20.00 and we subtract -20.00, result will be 0.00
+    #             self.env['stock.quant']._update_available_quantity(
+    #                 product,
+    #                 wh_stock,
+    #                 -negative_qty,  # Subtract the negative (so -(-20.00) = +20.00)
+    #                 lot_id=quant.lot_id
+    #             )
+                
+    #             fixed_count += 1
+    #             _logger.info(f"Successfully transferred negative quantity for lot {lot_name}")
+                
+    #         except Exception as e:
+    #             error_msg = f"Failed to fix lot {quant.lot_id.name if quant.lot_id else 'unknown'}: {str(e)}"
+    #             _logger.error(error_msg)
+    #             errors.append(error_msg)
+        
+    #     _logger.info(f"=== FIX COMPLETE: {fixed_count} records fixed, {len(errors)} errors ===")
+        
+    #     return {
+    #         'fixed_count': fixed_count,
+    #         'errors': errors
+    #     }
+
+    # @api.model
+    # def fix_all_sorting_inventory_mismatches(self):
+    #     """Comprehensive fix for all sorting-related inventory mismatches"""
+    #     _logger.info("=== STARTING COMPREHENSIVE INVENTORY MISMATCH FIX ===")
+        
+    #     # Step 1: Fix negative quantities in WH/Stock
+    #     wh_fix_result = self.fix_wh_stock_negative_quantities()
+        
+    #     # Step 2: Fix any remaining mismatches for confirmed sorting reports
+    #     confirmed_reports = self.search([
+    #         ('state', '=', 'confirmed'),
+    #         ('inventory_processed', '=', True)
+    #     ])
+        
+    #     additional_fixes = 0
+        
+    #     for report in confirmed_reports:
+    #         try:
+    #             # Check if parent lot still has inventory records that should be zero
+    #             parent_quants = self.env['stock.quant'].search([
+    #                 ('lot_id', '=', report.parent_lot_id.id),
+    #                 ('quantity', '!=', 0)
+    #             ])
+                
+    #             if parent_quants:
+    #                 total_qty = sum(parent_quants.mapped('quantity'))
+                    
+    #                 # If total is near zero (within 0.01), it's a rounding/mismatch issue
+    #                 if abs(total_qty) < 0.01:
+    #                     _logger.info(f"Zeroing out mismatched quantities for lot {report.parent_lot_id.name}")
+                        
+    #                     for quant in parent_quants:
+    #                         quant.sudo().write({
+    #                             'quantity': 0,
+    #                             'reserved_quantity': 0
+    #                         })
+                        
+    #                     additional_fixes += 1
+                        
+    #         except Exception as e:
+    #             _logger.error(f"Failed to fix additional mismatch for report {report.name}: {e}")
+        
+    #     # Prepare summary
+    #     total_fixed = wh_fix_result['fixed_count'] + additional_fixes
+    #     all_errors = wh_fix_result['errors']
+        
+    #     _logger.info(f"=== COMPREHENSIVE FIX COMPLETE ===")
+    #     _logger.info(f"Total records fixed: {total_fixed}")
+    #     _logger.info(f"WH/Stock negative fixes: {wh_fix_result['fixed_count']}")
+    #     _logger.info(f"Additional mismatch fixes: {additional_fixes}")
+    #     _logger.info(f"Errors encountered: {len(all_errors)}")
+        
+    #     return {
+    #         'total_fixed': total_fixed,
+    #         'wh_stock_fixes': wh_fix_result['fixed_count'],
+    #         'additional_fixes': additional_fixes,
+    #         'errors': all_errors
+    #     }
+
+    # @api.model
+    # def action_manual_inventory_fix(self):
+    #     """Manual action to fix inventory mismatches (can be called from UI)"""
+    #     fix_result = self.fix_all_sorting_inventory_mismatches()
+        
+    #     if fix_result['total_fixed'] > 0:
+    #         message = f"Successfully fixed {fix_result['total_fixed']} inventory records:\n"
+    #         message += f"• WH/Stock negative quantities: {fix_result['wh_stock_fixes']}\n"
+    #         message += f"• Additional mismatches: {fix_result['additional_fixes']}"
+            
+    #         if fix_result['errors']:
+    #             message += f"\n\nErrors encountered: {len(fix_result['errors'])}"
+    #             for error in fix_result['errors'][:5]:  # Show first 5 errors
+    #                 message += f"\n• {error}"
+    #             if len(fix_result['errors']) > 5:
+    #                 message += f"\n... and {len(fix_result['errors']) - 5} more errors"
+                    
+    #             notification_type = 'warning'
+    #         else:
+    #             notification_type = 'success'
+    #     else:
+    #         message = "No inventory mismatches found to fix."
+    #         notification_type = 'info'
+        
+    #     return {
+    #         'type': 'ir.actions.client',
+    #         'tag': 'display_notification',
+    #         'params': {
+    #             'title': 'Inventory Mismatch Fix Complete',
+    #             'message': message,
+    #             'type': notification_type,
+    #             'sticky': True,
+    #         }
+    #     }
+    
+
+
+    # @api.model
+    # def test_inventory_fix_manual(self):
+    #     """Test method to manually trigger the fix"""
+    #     import logging
+    #     _logger = logging.getLogger(__name__)
+        
+    #     _logger.info("=== MANUAL TEST OF INVENTORY FIX ===")
+        
+    #     # Test WH/Stock fix specifically
+    #     result = self.fix_wh_stock_negative_quantities()
+        
+    #     _logger.info(f"Manual test result: {result}")
+        
+    #     return {
+    #         'type': 'ir.actions.client',
+    #         'tag': 'display_notification',
+    #         'params': {
+    #             'title': 'Manual Inventory Fix Test',
+    #             'message': f"Fixed {result['fixed_count']} records. Check logs for details.",
+    #             'type': 'success' if result['fixed_count'] > 0 else 'warning',
+    #             'sticky': True,
+    #         }
+    #     }
+    
+
+    # @api.model
+    # def debug_check_negative_quants(self):
+    #     """Debug method to check current negative quantities"""
+    #     import logging
+    #     _logger = logging.getLogger(__name__)
+        
+    #     _logger.info("=== CHECKING NEGATIVE QUANTITIES ===")
+        
+    #     # Find WH/Stock location
+    #     wh_stock = self.env['stock.location'].search([
+    #         ('complete_name', 'ilike', 'WH/Stock'),
+    #         ('usage', '=', 'internal')
+    #     ])
+        
+    #     _logger.info(f"Found WH/Stock locations: {[loc.complete_name for loc in wh_stock]}")
+        
+    #     if wh_stock:
+    #         # Find negative quantities
+    #         negative_quants = self.env['stock.quant'].search([
+    #             ('location_id', '=', wh_stock[0].id),
+    #             ('quantity', '<', 0)
+    #         ])
+            
+    #         _logger.info(f"Found {len(negative_quants)} negative quants in WH/Stock")
+    #         for quant in negative_quants:
+    #             _logger.info(f"  - Product: {quant.product_id.name}, Lot: {quant.lot_id.name if quant.lot_id else 'No lot'}, Qty: {quant.quantity}")
+        
+    #     # Find DS/Stock location
+    #     ds_stock = self.env['stock.location'].search([
+    #         ('complete_name', 'ilike', 'DS/Stock'),
+    #         ('usage', '=', 'internal')
+    #     ])
+        
+    #     _logger.info(f"Found DS/Stock locations: {[loc.complete_name for loc in ds_stock]}")
+        
+    #     if ds_stock:
+    #         # Check DK-241225-0002 lot specifically
+    #         dk_quants = self.env['stock.quant'].search([
+    #             ('location_id', '=', ds_stock[0].id),
+    #             ('lot_id.name', '=', 'DK-241225-0002')
+    #         ])
+            
+    #         _logger.info(f"DK-241225-0002 in DS/Stock: {len(dk_quants)} records")
+    #         for quant in dk_quants:
+    #             _logger.info(f"  - Qty: {quant.quantity}")
+        
+        # return True
+
+
+
+
+    
+    # individual sorting report fix 
+
+    def action_fix_parent_lot_inventory(self):
+        """Fix inventory mismatch for this sorting report's parent lot only"""
+        self.ensure_one()
+        
+        if not self.parent_lot_id:
+            message = "No parent lot found to fix."
+            self.message_post(body=_(message))
+            raise UserError(_(message))
+        
+        _logger.info(f"=== FIXING INVENTORY FOR PARENT LOT: {self.parent_lot_id.name} ===")
+        
+        # Find WH/Stock and DS/Stock locations
+        wh_stock = self.env['stock.location'].search([
+            ('complete_name', 'ilike', 'WH/Stock'),
+            ('usage', '=', 'internal')
+        ], limit=1)
+        
+        ds_stock = self.env['stock.location'].search([
+            ('complete_name', 'ilike', 'DS/Stock'),
+            ('usage', '=', 'internal')
+        ], limit=1)
+        
+        if not wh_stock:
+            message = "WH/Stock location not found. Cannot proceed with fix."
+            self.message_post(body=_(message))
+            raise UserError(_(message))
+            
+        if not ds_stock:
+            message = "DS/Stock location not found. Cannot proceed with fix."
+            self.message_post(body=_(message))
+            raise UserError(_(message))
+        
+        # Find negative quantities for this specific parent lot in WH/Stock
+        negative_quants = self.env['stock.quant'].search([
+            ('location_id', '=', wh_stock.id),
+            ('lot_id', '=', self.parent_lot_id.id),
+            ('quantity', '<', 0)
+        ])
+        
+        if not negative_quants:
+            message = f"No negative quantities found for lot {self.parent_lot_id.name} in WH/Stock."
+            _logger.info(message)
+            self.message_post(body=_(message))
+            
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'No Issues Found',
+                    'message': message,
+                    'type': 'info',
+                }
+            }
+        
+        # Fix each negative quant for this lot
+        fixed_details = []
+        total_fixed_qty = 0
+        
+        for quant in negative_quants:
+            try:
+                negative_qty = quant.quantity  # e.g., -20.00
+                product_name = quant.product_id.name
+                
+                _logger.info(f"Fixing: {product_name}, Qty: {negative_qty}")
+                
+                # STEP 1: Transfer negative quantity to DS/Stock (reduces DS/Stock quantity)
+                self.env['stock.quant']._update_available_quantity(
+                    quant.product_id,
+                    ds_stock,
+                    negative_qty,  # Add the negative quantity
+                    lot_id=quant.lot_id
+                )
+                
+                # STEP 2: Remove negative quantity from WH/Stock (makes it zero)
+                self.env['stock.quant']._update_available_quantity(
+                    quant.product_id,
+                    wh_stock,
+                    -negative_qty,  # Remove the negative
+                    lot_id=quant.lot_id
+                )
+                
+                fixed_details.append(f"• {product_name}: {abs(negative_qty)} units")
+                total_fixed_qty += abs(negative_qty)
+                
+                _logger.info(f"Successfully fixed negative quantity for {product_name}")
+                
+            except Exception as e:
+                error_msg = f"Failed to fix negative quantity for {quant.product_id.name}: {str(e)}"
+                _logger.error(error_msg)
+                self.message_post(body=_(f"❌ Error: {error_msg}"))
+                raise UserError(_(error_msg))
+        
+        # Log success message in chatter
+        success_message = _(
+            "✅ Inventory Mismatch Fixed:\n"
+            "Transferred negative quantities from WH/Stock to DS/Stock:\n%s\n"
+            "Total quantity corrected: %.2f %s"
+        ) % (
+            '\n'.join(fixed_details),
+            total_fixed_qty,
+            self.parent_lot_id.product_uom_id.name
+        )
+        
+        self.message_post(body=success_message)
+        _logger.info(f"Fix completed for lot {self.parent_lot_id.name}: {len(negative_quants)} records fixed")
+        
+        # Show success notification
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Inventory Fix Completed',
+                'message': f"Successfully fixed inventory mismatch for lot {self.parent_lot_id.name}. Check the record's messages for details.",
+                'type': 'success',
+            }
+        }
+

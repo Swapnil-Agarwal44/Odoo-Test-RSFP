@@ -1,6 +1,6 @@
 {
     'name': 'Custom RSFP Module',
-    'version': '1.0',
+    'version': '1.0.1',
     'category': 'Quality/Purchase',
     'summary': 'Customized RSFP module for inventory management.',
     'depends': [

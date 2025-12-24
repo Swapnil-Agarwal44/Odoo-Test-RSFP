@@ -52,6 +52,12 @@
                             class="oe_highlight" invisible="state != 'draft'"/>
                         <button name="action_reset_to_draft" type="object" string="Reset to Draft" 
                             invisible="state != 'confirmed'"/>
+                        <button name="action_fix_parent_lot_inventory" 
+                                type="object" 
+                                string="Fix Inventory Mismatch"
+                                class="btn-warning"
+                                invisible="state != 'confirmed'" 
+                                confirm="This will transfer negative quantities from WH/Stock to DS/Stock for this parent lot. Continue?"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
                     </header>
                     <sheet>
